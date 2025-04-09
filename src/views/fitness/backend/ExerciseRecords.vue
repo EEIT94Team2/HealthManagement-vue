@@ -35,32 +35,32 @@
     </el-form>
 
     <el-table :data="workoutRecords" border style="width: 100%">
-      <el-table-column prop="id" label="ID" width="80"></el-table-column>
+      <el-table-column prop="recordId" label="ID" width="80"></el-table-column>
       <el-table-column
         prop="userId"
         label="用戶 ID"
         width="100"
       ></el-table-column>
-      <el-table-column prop="name" label="姓名"></el-table-column>
-      <el-table-column prop="type" label="運動類型"></el-table-column>
+      <el-table-column prop="userName" label="姓名"></el-table-column>
+      <el-table-column prop="exerciseType" label="運動類型"></el-table-column>
       <el-table-column
-        prop="duration"
+        prop="exerciseDuration"
         label="運動時間 (分鐘)"
       ></el-table-column>
       <el-table-column
         prop="caloriesBurned"
         label="消耗卡路里"
       ></el-table-column>
-      <el-table-column prop="date" label="日期"></el-table-column>
+      <el-table-column prop="exerciseDate" label="日期"></el-table-column>
       <el-table-column label="操作" width="150">
         <template #default="scope">
-          <el-button size="small" @click="handleEdit(scope.row)"
+          <el-button size="small" @click="openEditDialog(scope.row)"
             >編輯</el-button
           >
           <el-button
             size="small"
             type="danger"
-            @click="handleDelete(scope.row.id)"
+            @click="handleDelete(scope.row.recordId)"
             >刪除</el-button
           >
         </template>
@@ -87,29 +87,26 @@
       <el-button @click="openEditDialog(null)">新增資料</el-button>
     </div>
 
-    <el-dialog v-model="editDialogVisible" title="新增運動紀錄">
+    <el-dialog v-model="editDialogVisible" title="新增/編輯運動紀錄">
       <el-form :model="editForm" label-width="120px">
         <el-form-item label="用戶 ID">
-          <el-input v-model="editForm.userId"></el-input>
+          <el-input
+            v-model="editForm.userId"
+            :disabled="!!editForm.recordId"
+          ></el-input>
         </el-form-item>
         <el-form-item label="運動類型">
-          <el-input v-model="editForm.type"></el-input>
+          <el-input v-model="editForm.exerciseType"></el-input>
         </el-form-item>
         <el-form-item label="運動時間 (分鐘)">
           <el-input-number
-            v-model="editForm.duration"
+            v-model="editForm.exerciseDuration"
             :min="1"
-          ></el-input-number>
-        </el-form-item>
-        <el-form-item label="消耗卡路里">
-          <el-input-number
-            v-model="editForm.caloriesBurned"
-            :min="0"
           ></el-input-number>
         </el-form-item>
         <el-form-item label="日期">
           <el-date-picker
-            v-model="editForm.date"
+            v-model="editForm.exerciseDate"
             type="date"
             value-format="YYYY-MM-DD"
           ></el-date-picker>
@@ -143,34 +140,40 @@ const searchForm = reactive({
 
 const editDialogVisible = ref(false);
 const editForm = reactive({
-  id: null,
+  recordId: null,
   userId: null,
-  name: "", // 仍然保留在 editForm 中，用於編輯
-  type: "",
-  duration: null,
+  exerciseType: "",
+  exerciseDuration: null,
   caloriesBurned: null,
-  date: null,
+  exerciseDate: null,
 });
 
 const fetchWorkoutRecords = async () => {
-  if (!searchForm.userId && !searchForm.name) {
-    ElMessage.warning("請輸入用戶 ID 或姓名進行查詢");
-    return;
+  const params = {
+    page: currentPage.value - 1, // 後端通常從 0 開始
+    size: pageSize.value,
+    exerciseType: searchForm.type || undefined,
+    startDate: searchForm.dateRange ? searchForm.dateRange[0] : undefined,
+    endDate: searchForm.dateRange ? searchForm.dateRange[1] : undefined,
+  };
+
+  let apiUrl = "/tracking/exercise-records"; // 預設 API 路徑
+
+  if (searchForm.userId && searchForm.name) {
+    // 同時根據用戶 ID 和姓名查詢
+    apiUrl = `/tracking/exercise-records/user/${searchForm.userId}/by-name?userName=${searchForm.name}`;
+  } else if (searchForm.userId) {
+    // 僅根據用戶 ID 查詢
+    apiUrl = `/tracking/exercise-records/user/${searchForm.userId}`;
+  } else if (searchForm.name) {
+    // 僅根據姓名查詢
+    apiUrl = `/tracking/exercise-records/by-name?userName=${searchForm.name}`;
   }
 
   try {
-    const params = {
-      page: currentPage.value - 1, // 後端通常從 0 開始
-      size: pageSize.value,
-      userId: searchForm.userId || undefined,
-      name: searchForm.name || undefined,
-      type: searchForm.type || undefined,
-      startDate: searchForm.dateRange ? searchForm.dateRange[0] : undefined,
-      endDate: searchForm.dateRange ? searchForm.dateRange[1] : undefined,
-    };
-    const response = await axios.get("/api/admin/workouts", { params });
-    workoutRecords.value = response.data.content;
-    total.value = response.data.totalElements;
+    const response = await axios.get(apiUrl, { params });
+    workoutRecords.value = response.data; // 後端返回的是 DTO 列表
+    total.value = response.data.length; // 假設後端沒有提供 totalElements，這裡使用返回的資料長度
 
     if (
       workoutRecords.value.length === 0 &&
@@ -186,12 +189,14 @@ const fetchWorkoutRecords = async () => {
 
 const handleSizeChange = (size) => {
   pageSize.value = size;
-  fetchWorkoutRecords();
+  // 注意：如果後端沒有分頁，前端分頁可能需要自己處理
+  // fetchWorkoutRecords();
 };
 
 const handleCurrentChange = (page) => {
   currentPage.value = page;
-  fetchWorkoutRecords();
+  // 注意：如果後端沒有分頁，前端分頁可能需要自己處理
+  // fetchWorkoutRecords();
 };
 
 const resetSearchForm = () => {
@@ -205,52 +210,51 @@ const resetSearchForm = () => {
 
 const openEditDialog = (row) => {
   if (row) {
-    editForm.id = row.id;
+    editForm.recordId = row.recordId;
     editForm.userId = row.userId;
-    editForm.name = row.name;
-    editForm.type = row.type;
-    editForm.duration = row.duration;
+    editForm.exerciseType = row.exerciseType;
+    editForm.exerciseDuration = row.exerciseDuration;
     editForm.caloriesBurned = row.caloriesBurned;
-    editForm.date = row.date;
+    editForm.exerciseDate = row.exerciseDate;
   } else {
-    // 新增時重置表單，但不重置 name
-    editForm.id = null;
+    editForm.recordId = null;
     editForm.userId = null;
-    editForm.name = ""; // 為了編輯時使用，這裡可以保留或設定為 null
-    editForm.type = "";
-    editForm.duration = null;
+    editForm.exerciseType = "";
+    editForm.exerciseDuration = null;
     editForm.caloriesBurned = null;
-    editForm.date = null;
+    editForm.exerciseDate = null;
   }
   editDialogVisible.value = true;
 };
 
 const saveEdit = async () => {
   try {
-    if (editForm.id) {
-      await axios.put(`/api/admin/workouts/${editForm.id}`, editForm);
+    if (editForm.recordId) {
+      await axios.put(
+        `/tracking/exercise-records/${editForm.recordId}`,
+        editForm
+      );
       ElMessage.success("健身紀錄更新成功");
     } else {
-      await axios.post("/api/admin/workouts", {
-        userId: editForm.userId,
-        type: editForm.type,
-        duration: editForm.duration,
-        caloriesBurned: editForm.caloriesBurned,
-        date: editForm.date,
-      });
+      await axios.post("/tracking/exercise-records", editForm);
       ElMessage.success("健身紀錄新增成功");
     }
     editDialogVisible.value = false;
     fetchWorkoutRecords();
   } catch (error) {
-    console.error(editForm.id ? "更新健身紀錄失敗" : "新增健身紀錄失敗", error);
-    ElMessage.error(editForm.id ? "更新健身紀錄失敗" : "新增健身紀錄失敗");
+    console.error(
+      editForm.recordId ? "更新健身紀錄失敗" : "新增健身紀錄失敗",
+      error
+    );
+    ElMessage.error(
+      editForm.recordId ? "更新健身紀錄失敗" : "新增健身紀錄失敗"
+    );
   }
 };
 
 const handleDelete = async (id) => {
   try {
-    await axios.delete(`/api/admin/workouts/${id}`);
+    await axios.delete(`/tracking/exercise-records/${id}`);
     ElMessage.success("健身紀錄刪除成功");
     fetchWorkoutRecords();
   } catch (error) {
