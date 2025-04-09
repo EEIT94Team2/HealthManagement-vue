@@ -1,15 +1,14 @@
 <template>
   <div>
     <div style="margin-bottom: 20px;">
-      <el-button @click="activeSearch = null; currentPage = 1; fetchCourses()" :type="activeSearch === null ? 'primary' : ''">全部課程</el-button>
-      <el-button @click="activeSearch = 'byId'" :type="activeSearch === 'byId' ? 'primary' : ''" style="margin-left: 10px;">依課程編號查詢</el-button>
-      <el-button @click="activeSearch = 'byName'" :type="activeSearch === 'byName' ? 'primary' : ''" style="margin-left: 10px;">依課程名稱查詢</el-button>
-      <el-button @click="activeSearch = 'byCoachId'" :type="activeSearch === 'byCoachId' ? 'primary' : ''" style="margin-left: 10px;">依教練編號查詢</el-button>
-      <el-button @click="activeSearch = 'byCoachName'" :type="activeSearch === 'byCoachName' ? 'primary' : ''" style="margin-left: 10px;">依教練名稱查詢</el-button>
-      <el-button
-  @click="openCreateForm"
-  :type="showCreateForm || editingCourseId ? 'primary' : ''"
->新增課程</el-button>
+      <el-button @click="activeSearch = null; showCreateForm = false; editingCourseId = null; currentPage = 1; fetchCourses()" :type="activeSearch === null && !showCreateForm && !editingCourseId ? 'primary' : ''">全部課程
+      </el-button>
+      <el-button @click="activeSearch = 'byId'; showCreateForm = false;" :type="activeSearch === 'byId' ? 'primary' : ''" style="margin-left: 10px;">依課程編號查詢</el-button>
+      <el-button @click="activeSearch = 'byName'; showCreateForm = false;" :type="activeSearch === 'byName' ? 'primary' : ''" style="margin-left: 10px;">依課程名稱查詢</el-button>
+      <el-button @click="activeSearch = 'byCoachId'; showCreateForm = false;" :type="activeSearch === 'byCoachId' ? 'primary' : ''" style="margin-left: 10px;">依教練編號查詢</el-button>
+      <el-button @click="activeSearch = 'byCoachName'; showCreateForm = false;" :type="activeSearch === 'byCoachName' ? 'primary' : ''" style="margin-left: 10px;">依教練名稱查詢</el-button>
+      <el-button @click="openCreateForm":type="showCreateForm && !editingCourseId ? 'primary' : ''" >新增課程</el-button>
+
     </div>
 
     <section v-if="activeSearch === 'byId' && !showCreateForm && !editingCourseId" style="margin-bottom: 20px;">
@@ -21,7 +20,11 @@
         <el-table-column prop="id" label="課程編號" width="85" />
         <el-table-column prop="name" label="課程名稱" />
         <el-table-column prop="description" label="課程內容" />
-        <el-table-column prop="date" label="日期" width="150" />
+        <el-table-column prop="date" label="日期" width="150">
+          <template #default="scope">
+            {{ formatDate(scope.row.date) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="duration" label="時長（分鐘）" width="110" />
         <el-table-column prop="maxCapacity" label="最大人數" width="100" />
         <el-table-column prop="coachId" label="教練編號" width="85"></el-table-column>
@@ -45,7 +48,11 @@
         <el-table-column prop="id" label="課程編號" width="85" />
         <el-table-column prop="name" label="課程名稱" />
         <el-table-column prop="description" label="課程內容" />
-        <el-table-column prop="date" label="日期" width="150" />
+        <el-table-column prop="date" label="日期" width="150">
+          <template #default="scope">
+            {{ formatDate(scope.row.date) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="duration" label="時長（分鐘）" width="110" />
         <el-table-column prop="maxCapacity" label="最大人數" width="100" />
         <el-table-column prop="coachId" label="教練編號" width="85"></el-table-column>
@@ -69,7 +76,11 @@
         <el-table-column prop="id" label="課程編號" width="85" />
         <el-table-column prop="name" label="課程名稱" />
         <el-table-column prop="description" label="課程內容" />
-        <el-table-column prop="date" label="日期" width="150" />
+        <el-table-column prop="date" label="日期" width="150">
+          <template #default="scope">
+            {{ formatDate(scope.row.date) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="duration" label="時長（分鐘）" width="110" />
         <el-table-column prop="maxCapacity" label="最大人數" width="100" />
         <el-table-column prop="coachId" label="教練編號" width="85"></el-table-column>
@@ -93,7 +104,11 @@
         <el-table-column prop="id" label="課程編號" width="85" />
         <el-table-column prop="name" label="課程名稱" />
         <el-table-column prop="description" label="課程內容" />
-        <el-table-column prop="date" label="日期" width="150" />
+        <el-table-column prop="date" label="日期" width="150">
+          <template #default="scope">
+            {{ formatDate(scope.row.date) }}
+          </template>
+        </el-table-column>
         <el-table-column prop="duration" label="時長（分鐘）" width="110" />
         <el-table-column prop="maxCapacity" label="最大人數" width="100" />
         <el-table-column prop="coachId" label="教練編號" width="85"></el-table-column>
@@ -137,7 +152,7 @@
           <el-input v-model="form.coachId" placeholder="請輸入教練編號" style="width: 150px;" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSubmit">{{ editingCourseId ? '更新' : '新增' }}</el-button>
+          <el-button type="primary" @click="handleSubmit">{{ editingCourseId ? '編輯' : '新增' }}</el-button>
           <el-button @click="closeForm">取消</el-button>
         </el-form-item>
       </el-form>
@@ -148,7 +163,11 @@
       <el-table-column prop="id" label="課程編號" width="85" />
       <el-table-column prop="name" label="課程名稱" />
       <el-table-column prop="description" label="課程內容" />
-      <el-table-column prop="date" label="日期" width="150" />
+      <el-table-column prop="date" label="日期" width="150">
+        <template #default="scope">
+          {{ formatDate(scope.row.date) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="duration" label="時長（分鐘）" width="110" />
       <el-table-column prop="maxCapacity" label="最大人數" width="100" />
       <el-table-column prop="coach.id" label="教練編號" width="85"></el-table-column>
@@ -174,6 +193,7 @@
     />
   </div>
 </template>
+
 
 <script setup>
 import { ref, onMounted, computed, reactive } from 'vue';
@@ -248,7 +268,9 @@ const openCreateForm = () => {
   editingCourseId.value = null;
   resetForm();
   showCreateForm.value = true;
+  activeSearch.value = null; // 加這一行
 };
+
 
 const openEditForm = (id) => {
   editingCourseId.value = id;
@@ -289,6 +311,7 @@ const handleCurrentChange = (page) => {
 };
 
 const searchCourseById = async () => {
+  showCreateForm.value = false; // 確保關閉新增表單
   if (!searchById.id) {
     ElMessage.warning('請輸入課程編號');
     return;
@@ -307,6 +330,7 @@ const searchCourseById = async () => {
 };
 
 const searchCourseByName = async () => {
+  showCreateForm.value = false; // 確保關閉新增表單
   if (!searchByName.name) {
     ElMessage.warning('請輸入課程名稱');
     return;
@@ -316,6 +340,9 @@ const searchCourseByName = async () => {
     searchByName.courses = response.data;
     searchByName.performed = true;
     activeSearch.value = 'byName';
+    if (searchByName.courses.length === 0) {
+      ElMessage.warning('沒有找到符合該名稱的課程。');
+    }
   } catch (error) {
     console.error('依課程名稱查詢失敗', error);
     searchByName.courses = [];
@@ -325,6 +352,7 @@ const searchCourseByName = async () => {
 };
 
 const searchCourseByCoachId = async () => {
+  showCreateForm.value = false; // 確保關閉新增表單
   if (!searchByCoachId.coachId) {
     ElMessage.warning('請輸入教練編號');
     return;
@@ -343,6 +371,7 @@ const searchCourseByCoachId = async () => {
 };
 
 const searchCourseByCoachName = async () => {
+  showCreateForm.value = false; // 確保關閉新增表單
   if (!searchByCoachName.name) {
     ElMessage.warning('請輸入教練名稱');
     return;
@@ -352,6 +381,9 @@ const searchCourseByCoachName = async () => {
     searchByCoachName.courses = response.data;
     searchByCoachName.performed = true;
     activeSearch.value = 'byCoachName';
+    if (searchByCoachName.courses.length === 0) {
+      ElMessage.warning('沒有找到該教練名稱的課程。');
+    }
   } catch (error) {
     console.error('依教練名稱查詢失敗', error);
     searchByCoachName.courses = [];
@@ -407,7 +439,7 @@ const handleSubmit = async () => {
 
     if (editingCourseId.value) {
       await axios.put(`/courses/${editingCourseId.value}`, payload);
-      ElMessage.success('課程更新成功');
+      ElMessage.success('課程編輯成功');
 
       if (activeSearch.value === 'byId' && searchById.performed && searchById.course?.id === editingCourseId.value) {
         searchCourseById();
@@ -427,11 +459,13 @@ const handleSubmit = async () => {
     } else {
       await axios.post('/courses', payload);
       ElMessage.success('課程新增成功');
-      fetchCourses();
+      activeSearch.value = null; // 設定 activeSearch 為 null，顯示全部課程
+      currentPage.value = 1;   // 重置頁碼到第一頁
+      fetchCourses();          // 重新載入全部課程
     }
   } catch (error) {
-    console.error(editingCourseId.value ? '更新課程失敗' : '新增課程失敗', error);
-    ElMessage.error(editingCourseId.value ? '更新課程失敗' : '新增課程失敗');
+    console.error(editingCourseId.value ? '編輯課程失敗' : '新增課程失敗', error);
+    ElMessage.error(editingCourseId.value ? '編輯課程失敗' : '新增課程失敗');
   } finally {
     closeForm();
   }

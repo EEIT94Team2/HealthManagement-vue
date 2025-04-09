@@ -1,5 +1,9 @@
 <template>
   <div class="sidebar">
+    <div class="sidebar-header">
+      <img v-if="logo" :src="logo" class="logo-image" alt="Logo" />
+      <span class="logo-text">{{ title }}</span>
+    </div>
     <el-menu
       router
       default-active="$route.path"
@@ -105,14 +109,13 @@ import {
   ChatSquare,
   Histogram,
 } from "@element-plus/icons-vue";
+import logoImage from "@/assets/images/logo.png"; // 假設你的 logo 在這裡
 
 const router = useRouter();
 const route = useRoute();
 const isCollapse = ref(false);
-const emit = defineEmits(["update-title"]); // 定義發射的事件
-
-// 假設你將管理員狀態儲存在 localStorage 中
-const isAdmin = computed(() => localStorage.getItem("isAdmin") === "true");
+const logo = ref(logoImage);
+const title = ref("你今天健了嗎");
 
 const handleSelect = (index, indexPath) => {
   let title = "後端管理系統"; // 預設標題
@@ -162,12 +165,13 @@ const handleSelect = (index, indexPath) => {
     case "/social/create":
       title = "發表文章";
       break;
-    case "member":
+    case "member": // 父選單，可以根據需求處理
     case "courses":
     case "shop":
     case "fitness":
     case "social":
-      title = indexPath.slice(-1)[0];
+      // 可以選擇不更新標題，或者根據父選單的文字更新
+      title = indexPath.slice(-1)[0]; // 使用最後一個路徑片段作為標題
       break;
     default:
       title = "後端管理系統";
@@ -184,8 +188,30 @@ const handleSelect = (index, indexPath) => {
   background-color: #304156;
   color: #bfcbd9;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column; /* 垂直排列，方便 header 放在頂部 */
 }
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* 水平居中 */
+  padding: 15px 10px;
+}
+
+.logo-image {
+  height: 30px;
+  margin-right: 10px;
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: bold;
+  color: #bfcbd9; /* 與側邊欄文字顏色一致 */
+}
+
 .el-menu {
   border-right: none;
+  flex-grow: 1; /* 讓 el-menu 佔據剩餘空間 */
 }
 </style>
