@@ -1,123 +1,158 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import Layout from '@/components/Layouts/index.vue';
-import HomePage from '@/views/HomePage.vue';
-import CourseList from '@/views/course/CourseList.vue';
-import CourseForm from '@/views/course/CourseForm.vue';
+import { createRouter, createWebHistory } from "vue-router";
+import Layout from "@/components/Layouts/index.vue";
+import HomePage from "@/views/HomePage.vue";
+import CourseList from "@/views/course/CourseList.vue";
+import CourseForm from "@/views/course/CourseForm.vue";
 
 // 會員中心
-import MemberLoginView from '@/views/member/MemberLoginView.vue';
-import MemberRegisterView from '@/views/member/MemberRegisterView.vue';
-import MemberProfileView from '@/views/member/MemberProfileView.vue';
+import MemberLoginView from "@/views/member/MemberLoginView.vue";
+import MemberRegisterView from "@/views/member/MemberRegisterView.vue";
+import MemberProfileView from "@/views/member/MemberProfileView.vue";
 
 // 購物車
-import CartOrdersView from '@/views/shop/CartOrdersView.vue';
-import CartAddProductView from '@/views/shop/CartAddProductView.vue';
+import CartOrdersView from "@/views/shop/CartOrdersView.vue";
+import CartAddProductView from "@/views/shop/CartAddProductView.vue";
 
 // 論壇
-import ForumHomeView from '@/views/social/ForumHomeView.vue';
-import ForumPostsView from '@/views/social/ForumPostsView.vue';
-import ForumCreateView from '@/views/social/ForumCreateView.vue';
+import ForumHomeView from "@/views/social/ForumHomeView.vue";
+import ForumPostsView from "@/views/social/ForumPostsView.vue";
+import ForumCreateView from "@/views/social/ForumCreateView.vue";
 
 // 追蹤成效
-import TrackingOverviewView from '@/views/fitness/TrackingOverviewView.vue';
-import TrackingReportsView from '@/views/fitness/TrackingReportsView.vue';
-import TrackingGoalsView from '@/views/fitness/TrackingGoalsView.vue';
+import AdminDietRecords from "@/views/fitness/backend/DietRecords.vue";
+import AdminExerciseRecords from "@/views/fitness/backend/ExerciseRecords.vue";
+import AdminBodyData from "@/views/fitness/backend/BodyData.vue";
+import AdminGoalsProgress from "@/views/fitness/backend/GoalsProgress.vue";
+import ReportsAnalysis from "@/views/fitness/backend/ReportsAnalysis.vue";
 
 const routes = [
   {
-    path: '/',
+    path: "/",
     component: Layout,
-    redirect: '/dashboard',
+    redirect: "/dashboard",
     children: [
       {
-        path: 'dashboard',
-        name: 'Dashboard',
+        path: "dashboard",
+        name: "Dashboard",
         component: HomePage,
-        meta: { title: '首頁', icon: 'HomeFilled', requiresAuth: true }, // 需要登入
+        meta: { title: "首頁", icon: "HomeFilled", requiresAuth: true }, // 需要登入
       },
       {
-        path: 'courses',
-        name: 'CourseList',
+        path: "courses",
+        name: "CourseList",
         component: CourseList,
-        meta: { title: '課程管理', icon: 'Calendar', requiresAuth: true }, // 需要登入
+        meta: { title: "課程管理", icon: "Calendar", requiresAuth: true }, // 需要登入
       },
       {
-        path: 'courses/create',
-        name: 'CourseCreate',
+        path: "courses/create",
+        name: "CourseCreate",
         component: CourseForm,
-        meta: { title: '創建課程', hidden: true, requiresAuth: true }, // 需要登入
+        meta: { title: "創建課程", hidden: true, requiresAuth: true }, // 需要登入
       },
       {
-        path: 'courses/edit/:id',
-        name: 'CourseEdit',
+        path: "courses/edit/:id",
+        name: "CourseEdit",
         component: CourseForm,
-        meta: { title: '編輯課程', hidden: true, requiresAuth: true }, // 需要登入
+        meta: { title: "編輯課程", hidden: true, requiresAuth: true }, // 需要登入
       },
       {
-        path: 'member/login',
-        name: 'MemberLogin',
+        path: "member/login",
+        name: "MemberLogin",
         component: MemberLoginView,
-        meta: { title: '會員登入' }, // 不需要登入
+        meta: { title: "會員登入" }, // 不需要登入
       },
       {
-        path: 'member/register',
-        name: 'MemberRegister',
+        path: "member/register",
+        name: "MemberRegister",
         component: MemberRegisterView,
-        meta: { title: '會員註冊' }, // 不需要登入
+        meta: { title: "會員註冊" }, // 不需要登入
       },
       {
-        path: 'member/profile',
-        name: 'MemberProfile',
+        path: "member/profile",
+        name: "MemberProfile",
         component: MemberProfileView,
-        meta: { title: '會員資料', requiresAuth: true }, // 需要登入
+        meta: { title: "會員資料", requiresAuth: true }, // 需要登入
       },
       {
-        path: 'shop/orders',
-        name: 'CartOrders',
+        path: "shop/orders",
+        name: "CartOrders",
         component: CartOrdersView,
-        meta: { title: '訂單管理', requiresAuth: true }, // 需要登入
+        meta: { title: "訂單管理", requiresAuth: true }, // 需要登入
       },
       {
-        path: 'shop/add-product',
-        name: 'CartAddProduct',
+        path: "shop/add-product",
+        name: "CartAddProduct",
         component: CartAddProductView,
-        meta: { title: '新增商品', requiresAuth: true }, // 需要登入
+        meta: { title: "新增商品", requiresAuth: true }, // 需要登入
       },
       {
-        path: 'social/home',
-        name: 'ForumHome',
+        path: "social/home",
+        name: "ForumHome",
         component: ForumHomeView,
-        meta: { title: '論壇首頁', requiresAuth: true }, // 需要登入
+        meta: { title: "論壇首頁", requiresAuth: true }, // 需要登入
       },
       {
-        path: 'social/posts',
-        name: 'ForumPosts',
+        path: "social/posts",
+        name: "ForumPosts",
         component: ForumPostsView,
-        meta: { title: '文章列表', requiresAuth: true }, // 需要登入
+        meta: { title: "文章列表", requiresAuth: true }, // 需要登入
       },
       {
-        path: 'social/create',
-        name: 'ForumCreate',
+        path: "social/create",
+        name: "ForumCreate",
         component: ForumCreateView,
-        meta: { title: '發表文章', requiresAuth: true }, // 需要登入
+        meta: { title: "發表文章", requiresAuth: true }, // 需要登入
       },
       {
-        path: 'fitness/overview',
-        name: 'TrackingOverview',
-        component: TrackingOverviewView,
-        meta: { title: '成效總覽', requiresAuth: true }, // 需要登入
+        path: "fitness/admin/workouts",
+        name: "AdminWorkouts",
+        component: AdminExerciseRecords,
+        meta: {
+          title: "運動紀錄管理",
+          requiresAuth: true,
+          isAdmin: true,
+        },
       },
       {
-        path: 'fitness/reports',
-        name: 'TrackingReports',
-        component: TrackingReportsView,
-        meta: { title: '報表分析', requiresAuth: true }, // 需要登入
+        path: "fitness/admin/diet",
+        name: "AdminDiet",
+        component: AdminDietRecords,
+        meta: {
+          title: "飲食紀錄管理",
+          requiresAuth: true,
+          isAdmin: true,
+        },
       },
       {
-        path: 'fitness/goals',
-        name: 'TrackingGoals',
-        component: TrackingGoalsView,
-        meta: { title: '目標設定', requiresAuth: true }, // 需要登入
+        path: "fitness/admin/body",
+        name: "AdminBodyData",
+        component: AdminBodyData,
+        meta: {
+          title: "身體數據管理",
+          icon: "Scale",
+          requiresAuth: true,
+          isAdmin: true,
+        },
+      },
+      {
+        path: "fitness/admin/goals",
+        name: "AdminGoalsProgress",
+        component: AdminGoalsProgress,
+        meta: {
+          title: "目標與進度",
+          requiresAuth: true,
+          isAdmin: true,
+        },
+      },
+      {
+        path: "fitness/admin/reports",
+        name: "ReportsAnalysis",
+        component: ReportsAnalysis,
+        meta: {
+          title: "報告與數據分析",
+          requiresAuth: true,
+          isAdmin: true,
+        },
       },
     ],
   },
