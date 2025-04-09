@@ -19,17 +19,21 @@
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
-        <el-avatar :size="30" :src="userAvatarUrl" :icon="UserFilled" />
+        <!-- 添加自定义类名 -->
+        <el-avatar :src="userAvatarUrl" :icon="UserFilled" class="user-avatar" />
       </el-dropdown>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, defineProps } from 'vue';
+import { ref, defineProps } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElAvatar, ElDropdown, ElDropdownMenu, ElDropdownItem, ElIcon } from 'element-plus';
 import { UserFilled, SwitchButton } from '@element-plus/icons-vue';
+
+// 导入图片
+import userAvatarImg from '@/assets/images/user.jpg';
 
 const router = useRouter();
 
@@ -42,7 +46,7 @@ const props = defineProps({
 
 const loggedInAccount = ref('admin');
 const loggedInNickname = ref('哈囉');
-const userAvatarUrl = ref('');
+const userAvatarUrl = ref(userAvatarImg); // 将导入的图片路径赋给变量
 
 const logout = () => {
   console.log('登出');
@@ -57,20 +61,28 @@ const logout = () => {
   background-color: #fff;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
   display: flex;
-  align-items: center;
+  align-items: center; /* 🔥 垂直置中關鍵 */
   padding: 0 20px;
   justify-content: space-between;
 
-  .user-info {
+  > * {
     display: flex;
     align-items: center;
+    height: 100%; // 確保和 navbar 一樣高
+  }
 
+  h2 {
+    margin: 0;
+  }
+
+  .user-info {
     .el-dropdown {
       margin-left: 15px;
     }
 
-    .el-avatar {
-      cursor: pointer;
+    .user-avatar { 
+      width: 50px; 
+      height: 50px; 
     }
   }
 }
