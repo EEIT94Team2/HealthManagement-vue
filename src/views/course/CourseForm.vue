@@ -22,7 +22,7 @@
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="handleSubmit">
-          {{ isEdit ? '更新' : '新增' }}
+          {{ isEdit ? '編輯' : '新增' }}
         </el-button>
         <el-button @click="handleCancel">取消</el-button>
       </el-form-item>
@@ -71,15 +71,15 @@ const handleSubmit = async () => {
   try {
     if (isEdit) {
       await axios.put(`/courses/${courseId}`, form.value);
-      ElMessage.success('課程更新成功');
+      ElMessage.success('課程編輯成功');
     } else {
       await axios.post('/courses', form.value);
       ElMessage.success('課程新增成功');
     }
     router.push('/courses');
   } catch (error) {
-    console.error(isEdit ? '更新課程失敗' : '新增課程失敗', error);
-    ElMessage.error(isEdit ? '更新課程失敗' : '新增課程失敗');
+    console.error(isEdit ? '編輯課程失敗' : '新增課程失敗', error);
+    ElMessage.error(isEdit ? '編輯課程失敗' : '新增課程失敗');
   }
 };
 
