@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1>{{ isEdit ? '編輯課程' : '新增課程' }}</h1>
+    <h3>{{ isEdit ? '編輯課程' : '新增課程' }}</h3>
     <el-form :model="form" label-width="120px">
       <el-form-item label="課程名稱：">
         <el-input v-model="form.name" placeholder="請輸入課程名稱" style="width: 300px;" />
@@ -74,12 +74,12 @@ const handleSubmit = async () => {
       ElMessage.success('課程更新成功');
     } else {
       await axios.post('/courses', form.value);
-      ElMessage.success('課程創建成功');
+      ElMessage.success('課程新增成功');
     }
     router.push('/courses');
   } catch (error) {
-    console.error(isEdit ? '更新課程失敗' : '創建課程失敗', error);
-    ElMessage.error(isEdit ? '更新課程失敗' : '創建課程失敗');
+    console.error(isEdit ? '更新課程失敗' : '新增課程失敗', error);
+    ElMessage.error(isEdit ? '更新課程失敗' : '新增課程失敗');
   }
 };
 
