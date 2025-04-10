@@ -9,62 +9,57 @@
         <el-input type="password" v-model="loginForm.password" />
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="login">登入</el-button>
+        <el-button type="primary" @click="login" :loading="isLoading">登入</el-button>
       </el-form-item>
-      <p v-if="loginError" style="color: red;">{{ loginError }}</p>
+      <p v-if="loginError" style="color: red">{{ loginError }}</p>
     </el-form>
     <p>還沒有帳號？<router-link to="/member/register">立即註冊</router-link></p>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import axios from 'axios';
-import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ref } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { ElMessage } from "element-plus";
+import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
+const route = useRoute();
+const authStore = useAuthStore();
+
 const loginForm = ref({
-  email: '',
-  password: '',
+  email: "",
+  password: "",
 });
-const loginError = ref('');
+const loginError = ref("");
+const isLoading = ref(false);
 
 const login = async () => {
-  loginError.value = '';
-  try {
-    // 連接後端登入API
-    const response = await axios.post('/api/auth/login', loginForm.value);
-    
-    // 確保後端返回的格式符合預期
-    if (response.data && response.data.success) {
-      const { token, role, userId } = response.data.data;
+  loginError.value = "";
+  isLoading.value = true;
 
-      // 將token存儲到localStorage
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('userRole', role);
-      
-      // 如果返回了userId，也保存到localStorage
-      if (userId) {
-        localStorage.setItem('userId', userId.toString());
+  try {
+    const result = await authStore.login(loginForm.value);
+
+    if (result.success) {
+      ElMessage.success("登入成功！");
+
+      // 如果 userId 有從後端回傳，記得存起來
+      if (result.data?.userId) {
+        localStorage.setItem("userId", result.data.userId.toString());
       }
 
-      // 將token添加到axios的默認請求頭中
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-      ElMessage.success('登入成功！');
-      // 登入成功後導向到首頁
-      router.push('/dashboard');
+      // 登入成功後導向 redirect 或 dashboard
+      const redirectPath = route.query.redirect || "/dashboard";
+      router.push(redirectPath);
     } else {
-      loginError.value = response.data.message || '登入失敗，請稍後再試';
+      loginError.value = result.message || "登入失敗，請稍後再試";
     }
   } catch (error) {
-    console.error('登入失敗', error);
-    if (error.response && error.response.data) {
-      loginError.value = error.response.data.message || '電子郵件或密碼錯誤，請重新輸入。';
-    } else {
-      loginError.value = '無法連接到伺服器，請檢查網絡連接。';
-    }
+    console.error("登入失敗", error);
+    loginError.value = "無法連接到伺服器，請檢查網絡連線。";
+  } finally {
+    isLoading.value = false;
   }
 };
 </script>
