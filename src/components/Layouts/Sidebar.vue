@@ -39,6 +39,7 @@
         </el-menu-item>
       </el-sub-menu>
 
+<<<<<<< Updated upstream
       <el-sub-menu index="shop">
         <template #title>
           <el-icon><ShoppingCart /></el-icon>
@@ -51,6 +52,27 @@
           <span>新增商品</span>
         </el-menu-item>
       </el-sub-menu>
+=======
+            <el-sub-menu index="shop">
+                <template #title>
+                    <el-icon><ShoppingCart /></el-icon>
+                    <span>商城管理</span>
+                </template>
+
+                <el-menu-item index="/shop/products">
+                    <span>商品管理</span>
+                </el-menu-item>
+                <el-menu-item index="/shop/cart">
+                    <span>購物車管理</span>
+                </el-menu-item>
+                <el-menu-item index="/shop/orders">
+                    <span>訂單管理</span>
+                </el-menu-item>
+                <el-menu-item index="/shop/payment-simulation">
+                    <span>模擬支付</span>
+                </el-menu-item>
+            </el-sub-menu>
+>>>>>>> Stashed changes
 
       <el-sub-menu index="fitness">
         <template #title>
