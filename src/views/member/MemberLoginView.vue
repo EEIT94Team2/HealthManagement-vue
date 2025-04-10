@@ -38,11 +38,16 @@ const login = async () => {
     
     // 確保後端返回的格式符合預期
     if (response.data && response.data.success) {
-      const { token, role } = response.data.data;
+      const { token, role, userId } = response.data.data;
 
       // 將token存儲到localStorage
       localStorage.setItem('authToken', token);
       localStorage.setItem('userRole', role);
+      
+      // 如果返回了userId，也保存到localStorage
+      if (userId) {
+        localStorage.setItem('userId', userId.toString());
+      }
 
       // 將token添加到axios的默認請求頭中
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
