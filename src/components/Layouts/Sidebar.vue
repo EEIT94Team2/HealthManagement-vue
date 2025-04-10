@@ -50,7 +50,7 @@
                 <el-menu-item index="/shop/products">
                     <span>商品管理</span>
                 </el-menu-item>
-                <el-menu-item index="/shop/cart">
+                <!-- <el-menu-item index="/shop/cart">
                     <span>購物車管理</span>
                 </el-menu-item>
                 <el-menu-item index="/shop/orders">
@@ -58,7 +58,7 @@
                 </el-menu-item>
                 <el-menu-item index="/shop/payment-simulation">
                     <span>模擬支付</span>
-                </el-menu-item>
+                </el-menu-item> -->
             </el-sub-menu>
 
             <el-sub-menu index="fitness">
