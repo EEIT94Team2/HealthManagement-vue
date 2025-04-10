@@ -23,157 +23,192 @@ import ForumPostsView from "@/views/social/ForumPostsView.vue";
 import ForumCreateView from "@/views/social/ForumCreateView.vue";
 
 // 追蹤成效
-import TrackingOverviewView from "@/views/fitness/TrackingOverviewView.vue";
-import TrackingReportsView from "@/views/fitness/TrackingReportsView.vue";
-import TrackingGoalsView from "@/views/fitness/TrackingGoalsView.vue";
+import AdminDietRecords from "@/views/fitness/backend/DietRecords.vue";
+import AdminExerciseRecords from "@/views/fitness/backend/ExerciseRecords.vue";
+import AdminBodyData from "@/views/fitness/backend/BodyData.vue";
+import AdminGoalsProgress from "@/views/fitness/backend/GoalsProgress.vue";
+import ReportsAnalysis from "@/views/fitness/backend/ReportsAnalysis.vue";
 
 const routes = [
-    {
-        path: "/",
-        component: Layout,
-        redirect: "/member/login",
-        children: [
-            {
-                path: "dashboard",
-                name: "Dashboard",
-                component: HomePage,
-                meta: { title: "首頁", icon: "HomeFilled", requiresAuth: true }, // 需要登入
-            },
-            {
-                path: "courses",
-                name: "CourseList",
-                component: CourseList,
-                meta: { title: "課程管理", icon: "Calendar", requiresAuth: true }, // 需要登入
-            },
-            {
-                path: "courses/create",
-                name: "CourseCreate",
-                component: CourseForm,
-                meta: { title: "創建課程", hidden: true, requiresAuth: true }, // 需要登入
-            },
-            {
-                path: "courses/edit/:id",
-                name: "CourseEdit",
-                component: CourseForm,
-                meta: { title: "編輯課程", hidden: true, requiresAuth: true }, // 需要登入
-            },
-            {
-                path: "member/login",
-                name: "MemberLogin",
-                component: MemberLoginView,
-                meta: { title: "會員登入" }, // 不需要登入
-            },
-            {
-                path: "member/register",
-                name: "MemberRegister",
-                component: MemberRegisterView,
-                meta: { title: "會員註冊" }, // 不需要登入
-            },
-            {
-                path: "member/profile",
-                name: "MemberProfile",
-                component: MemberProfileView,
-                meta: { title: "會員資料", requiresAuth: true }, // 需要登入
-            },
-            {
-                path: "shop/orders",
-                name: "OrderList",
-                component: OrderList,
-                meta: { title: "訂單管理", requiresAuth: true },
-            },
-            {
-                path: "shop/orders/:id",
-                name: "OrderDetail",
-                component: OrderDetail,
-                meta: { title: "訂單詳情", hidden: true, requiresAuth: true },
-            },
-            {
-                path: "shop/products",
-                name: "ProductList",
-                component: ProductList,
-                meta: { title: "商品管理", requiresAuth: true },
-            },
-            {
-                path: "shop/product-list",
-                redirect: "/shop/products",
-            },
-            {
-                path: "shop/products/:id",
-                name: "ProductDetail",
-                component: ProductDetail,
-                meta: { title: "商品詳情", hidden: true, requiresAuth: true },
-            },
-            {
-                path: "shop/cart",
-                name: "CartManagement",
-                component: CartManagement,
-                meta: { title: "購物車管理", requiresAuth: true },
-            },
-            {
-                path: "shop/checkout",
-                name: "PaymentSimulation",
-                component: PaymentSimulation,
-                meta: { title: "模擬支付", requiresAuth: true },
-            },
-            {
-                path: "social/home",
-                name: "ForumHome",
-                component: ForumHomeView,
-                meta: { title: "論壇首頁", requiresAuth: true }, // 需要登入
-            },
-            {
-                path: "social/posts",
-                name: "ForumPosts",
-                component: ForumPostsView,
-                meta: { title: "文章列表", requiresAuth: true }, // 需要登入
-            },
-            {
-                path: "social/create",
-                name: "ForumCreate",
-                component: ForumCreateView,
-                meta: { title: "發表文章", requiresAuth: true }, // 需要登入
-            },
-            {
-                path: "fitness/overview",
-                name: "TrackingOverview",
-                component: TrackingOverviewView,
-                meta: { title: "成效總覽", requiresAuth: true }, // 需要登入
-            },
-            {
-                path: "fitness/reports",
-                name: "TrackingReports",
-                component: TrackingReportsView,
-                meta: { title: "報表分析", requiresAuth: true }, // 需要登入
-            },
-            {
-                path: "fitness/goals",
-                name: "TrackingGoals",
-                component: TrackingGoalsView,
-                meta: { title: "目標設定", requiresAuth: true }, // 需要登入
-            },
-        ],
-    },
+  {
+    path: "/",
+    component: Layout,
+    redirect: "/member/login",
+    children: [
+      {
+        path: "dashboard",
+        name: "Dashboard",
+        component: HomePage,
+        meta: { title: "首頁", icon: "HomeFilled", requiresAuth: true }, // 需要登入
+      },
+      {
+        path: "courses",
+        name: "CourseList",
+        component: CourseList,
+        meta: { title: "課程管理", icon: "Calendar", requiresAuth: true }, // 需要登入
+      },
+      {
+        path: "courses/create",
+        name: "CourseCreate",
+        component: CourseForm,
+        meta: { title: "創建課程", hidden: true, requiresAuth: true }, // 需要登入
+      },
+      {
+        path: "courses/edit/:id",
+        name: "CourseEdit",
+        component: CourseForm,
+        meta: { title: "編輯課程", hidden: true, requiresAuth: true }, // 需要登入
+      },
+      {
+        path: "member/login",
+        name: "MemberLogin",
+        component: MemberLoginView,
+        meta: { title: "會員登入" }, // 不需要登入
+      },
+      {
+        path: "member/register",
+        name: "MemberRegister",
+        component: MemberRegisterView,
+        meta: { title: "會員註冊" }, // 不需要登入
+      },
+      {
+        path: "member/profile",
+        name: "MemberProfile",
+        component: MemberProfileView,
+        meta: { title: "會員資料", requiresAuth: true }, // 需要登入
+      },
+      {
+        path: "shop/orders",
+        name: "OrderList",
+        component: OrderList,
+        meta: { title: "訂單管理", requiresAuth: true },
+      },
+      {
+        path: "shop/orders/:id",
+        name: "OrderDetail",
+        component: OrderDetail,
+        meta: { title: "訂單詳情", hidden: true, requiresAuth: true },
+      },
+      {
+        path: "shop/products",
+        name: "ProductList",
+        component: ProductList,
+        meta: { title: "商品管理", requiresAuth: true },
+      },
+      {
+        path: "shop/product-list",
+        redirect: "/shop/products",
+      },
+      {
+        path: "shop/products/:id",
+        name: "ProductDetail",
+        component: ProductDetail,
+        meta: { title: "商品詳情", hidden: true, requiresAuth: true },
+      },
+      {
+        path: "shop/cart",
+        name: "CartManagement",
+        component: CartManagement,
+        meta: { title: "購物車管理", requiresAuth: true },
+      },
+      {
+        path: "shop/checkout",
+        name: "PaymentSimulation",
+        component: PaymentSimulation,
+        meta: { title: "模擬支付", requiresAuth: true },
+      },
+      {
+        path: "social/home",
+        name: "ForumHome",
+        component: ForumHomeView,
+        meta: { title: "論壇首頁", requiresAuth: true }, // 需要登入
+      },
+      {
+        path: "social/posts",
+        name: "ForumPosts",
+        component: ForumPostsView,
+        meta: { title: "文章列表", requiresAuth: true }, // 需要登入
+      },
+      {
+        path: "social/create",
+        name: "ForumCreate",
+        component: ForumCreateView,
+        meta: { title: "發表文章", requiresAuth: true }, // 需要登入
+      },
+      {
+        path: "fitness/admin/workouts",
+        name: "AdminWorkouts",
+        component: AdminExerciseRecords,
+        meta: {
+          title: "運動紀錄管理",
+          requiresAuth: true,
+          isAdmin: true,
+        },
+      },
+      {
+        path: "fitness/admin/diet",
+        name: "AdminDiet",
+        component: AdminDietRecords,
+        meta: {
+          title: "飲食紀錄管理",
+          requiresAuth: true,
+          isAdmin: true,
+        },
+      },
+      {
+        path: "fitness/admin/body",
+        name: "AdminBodyData",
+        component: AdminBodyData,
+        meta: {
+          title: "身體數據管理",
+          icon: "Scale",
+          requiresAuth: true,
+          isAdmin: true,
+        },
+      },
+      {
+        path: "fitness/admin/goals",
+        name: "AdminGoalsProgress",
+        component: AdminGoalsProgress,
+        meta: {
+          title: "目標與進度",
+          requiresAuth: true,
+          isAdmin: true,
+        },
+      },
+      {
+        path: "fitness/admin/reports",
+        name: "ReportsAnalysis",
+        component: ReportsAnalysis,
+        meta: {
+          title: "報告與數據分析",
+          requiresAuth: true,
+          isAdmin: true,
+        },
+      },
+    ],
+  },
 ];
 
 const router = createRouter({
-    history: createWebHistory(),
-    routes,
+  history: createWebHistory(),
+  routes,
 });
 
 router.beforeEach((to, from, next) => {
-    if (to.meta.requiresAuth) {
-        const authToken = localStorage.getItem("authToken");
-        if (!authToken) {
-            // 如果需要授權且沒有 token，則導向登入頁面
-            next("/member/login");
-        } else {
-            // 如果有 token，則繼續導航
-            next();
-        }
+  if (to.meta.requiresAuth) {
+    const authToken = localStorage.getItem("authToken");
+    if (!authToken) {
+      // 如果需要授權且沒有 token，則導向登入頁面
+      next("/member/login");
     } else {
-        // 如果不需要授權，則繼續導航
-        next();
+      // 如果有 token，則繼續導航
+      next();
     }
+  } else {
+    // 如果不需要授權，則繼續導航
+    next();
+  }
 });
 
 export default router;
