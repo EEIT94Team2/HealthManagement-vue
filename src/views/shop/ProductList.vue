@@ -31,22 +31,31 @@
             <el-table-column prop="stockQuantity" label="庫存" width="80" />
             <el-table-column label="操作" width="180">
                 <template #default="scope">
-                    <el-button
-                        v-if="isAdmin"
-                        type="warning"
-                        size="small"
-                        @click="editProduct(scope.row)"
-                    >
-                        編輯
-                    </el-button>
-                    <el-button
-                        v-if="isAdmin"
-                        type="danger"
-                        size="small"
-                        @click="deleteProduct(scope.row.id)"
-                    >
-                        刪除
-                    </el-button>
+                    <div class="button-container">
+                        <el-tooltip content="編輯商品" placement="top">
+                            <el-button
+                                v-if="isAdmin"
+                                type="primary"
+                                @click="editProduct(scope.row)"
+                                class="action-button"
+                            >
+                                <el-icon><Tools /></el-icon>
+                                編輯
+                            </el-button>
+                        </el-tooltip>
+
+                        <el-tooltip content="刪除商品" placement="top">
+                            <el-button
+                                v-if="isAdmin"
+                                type="danger"
+                                @click="deleteProduct(scope.row.id)"
+                                class="action-button"
+                            >
+                                <el-icon><CircleClose /></el-icon>
+                                刪除
+                            </el-button>
+                        </el-tooltip>
+                    </div>
                 </template>
             </el-table-column>
         </el-table>
@@ -104,9 +113,9 @@
         <!-- 提示菜單順序信息 -->
         <el-alert
             v-if="isAdmin"
-            title="菜單使用順序: 商品管理 → 購物車管理 → 訂單管理 → 模擬支付"
+            title="我是一個提示訊息"
             type="info"
-            description="請按照此順序操作系統，以確保流程正確"
+            description="我是一個提示訊息，以後這裡可以放一些說明文字。"
             :closable="false"
             show-icon
             style="margin-top: 20px"
@@ -130,7 +139,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
-import { Search, Plus } from "@element-plus/icons-vue";
+import { Search, Plus, Tools, CircleClose } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import axios from "axios";
 
@@ -395,5 +404,21 @@ h1 {
     margin-top: 20px;
     display: flex;
     justify-content: center;
+}
+.button-container {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.action-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+}
+
+.action-button :deep(.el-icon) {
+    font-size: 16px;
 }
 </style>

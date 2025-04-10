@@ -9,9 +9,7 @@
         <el-input type="password" v-model="loginForm.password" />
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="login" :loading="isLoading"
-          >登入</el-button
-        >
+        <el-button type="primary" @click="login" :loading="isLoading">登入</el-button>
       </el-form-item>
       <p v-if="loginError" style="color: red">{{ loginError }}</p>
     </el-form>
@@ -21,12 +19,12 @@
 
 <script setup>
 import { ref } from "vue";
-import axios from "axios";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 
 const loginForm = ref({
@@ -41,19 +39,25 @@ const login = async () => {
   isLoading.value = true;
 
   try {
-    // 使用auth store進行登入
     const result = await authStore.login(loginForm.value);
 
     if (result.success) {
       ElMessage.success("登入成功！");
-      // 登入成功後導向到首頁
-      router.push("/dashboard");
+
+      // 如果 userId 有從後端回傳，記得存起來
+      if (result.data?.userId) {
+        localStorage.setItem("userId", result.data.userId.toString());
+      }
+
+      // 登入成功後導向 redirect 或 dashboard
+      const redirectPath = route.query.redirect || "/dashboard";
+      router.push(redirectPath);
     } else {
       loginError.value = result.message || "登入失敗，請稍後再試";
     }
   } catch (error) {
     console.error("登入失敗", error);
-    loginError.value = "無法連接到伺服器，請檢查網絡連接。";
+    loginError.value = "無法連接到伺服器，請檢查網絡連線。";
   } finally {
     isLoading.value = false;
   }
