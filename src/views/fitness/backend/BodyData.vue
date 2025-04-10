@@ -29,6 +29,7 @@
     </el-form>
 
     <el-table :data="bodyData" border style="width: 100%">
+      <el-table-column prop="id" label="ID" width="50"></el-table-column>
       <el-table-column prop="userId" label="用戶 ID"></el-table-column>
       <el-table-column prop="userName" label="姓名"></el-table-column>
       <el-table-column prop="weight" label="體重 (公斤)"></el-table-column>
@@ -79,7 +80,7 @@
     </div>
 
     <el-dialog
-      :title="editDialogVisible ? '編輯身體數據' : '新增身體數據'"
+      :title="editForm.id ? '編輯身體數據' : '新增身體數據'"
       v-model="editDialogVisible"
     >
       <el-form :model="editForm" label-width="120px">
@@ -93,7 +94,7 @@
           <el-input-number
             v-model="editForm.weight"
             :min="0"
-            step="0.1"
+            :step="0.1"
           ></el-input-number>
         </el-form-item>
         <el-form-item label="體脂率 (%)">
@@ -101,28 +102,28 @@
             v-model="editForm.bodyFat"
             :min="0"
             :max="100"
-            step="0.1"
+            :step="0.1"
           ></el-input-number>
         </el-form-item>
         <el-form-item label="身高 (公分)">
           <el-input-number
             v-model="editForm.height"
             :min="0"
-            step="1"
+            :step="1"
           ></el-input-number>
         </el-form-item>
         <el-form-item label="腰圍 (公分)">
           <el-input-number
             v-model="editForm.waistCircumference"
             :min="0"
-            step="0.1"
+            :step="0.1"
           ></el-input-number>
         </el-form-item>
         <el-form-item label="臀圍 (公分)">
           <el-input-number
             v-model="editForm.hipCircumference"
             :min="0"
-            step="0.1"
+            :step="0.1"
           ></el-input-number>
         </el-form-item>
         <el-form-item label="測量日期">
@@ -172,9 +173,15 @@ const editForm = reactive({
   dateRecorded: null,
 });
 
+const getAuthHeaders = () => ({
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+  },
+});
+
 const fetchBodyData = async () => {
   const params = {
-    page: currentPage.value - 1,
+    page: currentPage.value - 1, // 後端 page 從 0 開始
     size: pageSize.value,
     userId: searchForm.userId || undefined,
     name: searchForm.name || undefined,
@@ -183,11 +190,14 @@ const fetchBodyData = async () => {
   };
 
   try {
-    const response = await axios.get("/tracking/body-metrics/search", {
+    const response = await axios.get("/api/tracking/body-metrics/search", {
       params,
+      ...getAuthHeaders(),
     });
-    bodyData.value = response.data; // 假設後端直接返回 DTO 列表
-    total.value = response.data.length; // 假設後端沒有提供 totalElements
+
+    bodyData.value = response.data.content; // 資料列表在 content 屬性中
+    total.value = response.data.totalElements; // 總筆數在 totalElements 屬性中
+    console.log("bodyData:", bodyData.value); // 檢查 bodyData 是否包含 id
 
     if (
       bodyData.value.length === 0 &&
@@ -203,14 +213,13 @@ const fetchBodyData = async () => {
 
 const handleSizeChange = (size) => {
   pageSize.value = size;
-  // 如果後端沒有分頁，前端處理分頁
-  // fetchBodyData();
+  currentPage.value = 1; // 切換每頁大小時回到第一頁
+  fetchBodyData();
 };
 
 const handleCurrentChange = (page) => {
   currentPage.value = page;
-  // 如果後端沒有分頁，前端處理分頁
-  // fetchBodyData();
+  fetchBodyData();
 };
 
 const resetSearchForm = () => {
@@ -223,25 +232,15 @@ const resetSearchForm = () => {
 
 const openEditDialog = (row) => {
   if (row) {
-    editForm.id = row.id;
-    editForm.userId = row.userId;
-    editForm.userName = row.userName;
-    editForm.weight = row.weight;
-    editForm.bodyFat = row.bodyFat;
-    editForm.height = row.height;
-    editForm.waistCircumference = row.waistCircumference;
-    editForm.hipCircumference = row.hipCircumference;
-    editForm.dateRecorded = row.dateRecorded;
+    Object.keys(editForm).forEach((key) => {
+      editForm[key] = row[key];
+    });
   } else {
-    editForm.id = null;
-    editForm.userId = null;
-    editForm.userName = "";
-    editForm.weight = null;
-    editForm.bodyFat = null;
-    editForm.height = null;
-    editForm.waistCircumference = null;
-    editForm.hipCircumference = null;
-    editForm.dateRecorded = null;
+    // 清空表單
+    Object.keys(editForm).forEach((key) => {
+      editForm[key] = null;
+    });
+    editForm.userName = ""; // 字串類型需要特別處理
   }
   editDialogVisible.value = true;
 };
@@ -249,6 +248,7 @@ const openEditDialog = (row) => {
 const saveEdit = async () => {
   try {
     const payload = {
+      id: editForm.id,
       userId: editForm.userId,
       weight: editForm.weight,
       bodyFat: editForm.bodyFat,
@@ -258,28 +258,53 @@ const saveEdit = async () => {
       dateRecorded: editForm.dateRecorded,
     };
 
-    if (editForm.id) {
-      await axios.put(`/tracking/body-metrics/${editForm.id}`, payload);
+    console.log("準備發送的數據:", payload);
+    console.log("編輯的ID值:", editForm.id);
+
+    if (editForm.id !== null && editForm.id !== undefined) {
+      // 更新現有記錄
+      console.log(`執行更新，ID: ${editForm.id}`);
+      const response = await axios({
+        method: "put",
+        url: `/api/tracking/body-metrics/${editForm.id}`,
+        data: payload,
+        headers: getAuthHeaders().headers,
+      });
+      console.log("更新響應:", response);
       ElMessage.success("身體數據更新成功");
     } else {
-      await axios.post("/tracking/body-metrics", payload);
+      // 新增記錄
+      console.log("執行新增");
+      const response = await axios({
+        method: "post",
+        url: "/api/tracking/body-metrics",
+        data: payload,
+        headers: getAuthHeaders().headers,
+      });
+      console.log("新增響應:", response);
       ElMessage.success("身體數據新增成功");
     }
     editDialogVisible.value = false;
-    fetchBodyData();
+    fetchBodyData(); // 刷新資料列表
   } catch (error) {
     console.error(editForm.id ? "更新身體數據失敗" : "新增身體數據失敗", error);
+    console.error("錯誤詳情:", error.response ? error.response.data : error);
     ElMessage.error(editForm.id ? "更新身體數據失敗" : "新增身體數據失敗");
   }
 };
 
 const handleDelete = async (id) => {
   try {
-    await axios.delete(`/tracking/body-metrics/${id}`);
+    await axios({
+      method: "delete",
+      url: `/api/tracking/body-metrics/${id}`,
+      headers: getAuthHeaders().headers,
+    });
     ElMessage.success("身體數據刪除成功");
     fetchBodyData();
   } catch (error) {
     console.error("刪除身體數據失敗", error);
+    console.error("錯誤詳情:", error.response ? error.response.data : error);
     ElMessage.error("刪除身體數據失敗");
   }
 };

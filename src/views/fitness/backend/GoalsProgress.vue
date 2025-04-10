@@ -30,7 +30,6 @@
 
     <el-table :data="goalsProgress" border style="width: 100%">
       <el-table-column prop="userId" label="用戶 ID"></el-table-column>
-      <el-table-column prop="name" label="姓名"></el-table-column>
       <el-table-column prop="goalType" label="目標類型"></el-table-column>
       <el-table-column prop="targetValue" label="目標值"></el-table-column>
       <el-table-column prop="currentValue" label="目前進度"></el-table-column>
@@ -45,7 +44,7 @@
           <el-button
             size="small"
             type="danger"
-            @click="handleDelete(scope.row.id)"
+            @click="handleDelete(scope.row.goalId)"
             >刪除</el-button
           >
         </template>
@@ -74,13 +73,13 @@
 
     <el-dialog
       v-model="editDialogVisible"
-      :title="editForm.id ? '編輯目標' : '新增目標'"
+      :title="editForm.goalId ? '編輯目標' : '新增目標'"
     >
       <el-form :model="editForm" label-width="120px">
         <el-form-item label="用戶 ID">
           <el-input
             v-model="editForm.userId"
-            :disabled="editForm.id"
+            :disabled="editForm.goalId"
           ></el-input>
         </el-form-item>
         <el-form-item label="目標類型">
@@ -146,7 +145,7 @@ const searchForm = reactive({
 });
 const editDialogVisible = ref(false);
 const editForm = reactive({
-  id: null,
+  goalId: null, // 將 id 更名為 goalId 以匹配後端
   userId: null,
   goalType: "",
   targetValue: null,
@@ -157,38 +156,46 @@ const editForm = reactive({
 });
 
 const fetchGoalsProgress = async () => {
-  const params = {};
-  if (searchForm.userId) {
-    params.userId = searchForm.userId;
+  const params = {
+    page: currentPage.value - 1,
+    size: pageSize.value,
+  };
+  let apiUrl = "";
+
+  if (searchForm.userId && searchForm.name && searchForm.startDateRange) {
+    // 需要後端同時支持這三個條件的查詢
+    console.warn("後端 API 目前沒有同時按用戶 ID、姓名和日期範圍查詢的功能。");
+    return;
+  } else if (searchForm.userId && searchForm.name) {
+    console.warn("後端 API 目前沒有同時按用戶 ID 和姓名查詢的功能。");
+    return;
+  } else if (searchForm.userId && searchForm.startDateRange) {
+    const startDate = searchForm.startDateRange[0];
+    const endDate = searchForm.startDateRange[1];
+    apiUrl = `/api/tracking/fitnessgoals/user/${searchForm.userId}/by-date-range?startDate=${startDate}&endDate=${endDate}`;
+  } else if (searchForm.name && searchForm.startDateRange) {
+    const startDate = searchForm.startDateRange[0];
+    const endDate = searchForm.startDateRange[1];
+    apiUrl = `/api/tracking/fitnessgoals/by-date-range?name=${searchForm.name}&startDate=${startDate}&endDate=${endDate}`;
+  } else if (searchForm.userId) {
+    apiUrl = `/api/tracking/fitnessgoals/user/${searchForm.userId}`;
+  } else if (searchForm.name) {
+    apiUrl = `/api/tracking/fitnessgoals/user/by-name?name=${searchForm.name}`;
+  } else if (searchForm.startDateRange) {
+    const startDate = searchForm.startDateRange[0];
+    const endDate = searchForm.startDateRange[1];
+    apiUrl = `/api/tracking/fitnessgoals/by-date-range?startDate=${startDate}&endDate=${endDate}`;
+  } else {
+    apiUrl = `/api/tracking/fitnessgoals/user/`;
   }
-  if (searchForm.name) {
-    params.name = searchForm.name;
-  }
-  if (searchForm.startDateRange) {
-    params.startDate = searchForm.startDateRange
-      ? searchForm.startDateRange[0]
-      : undefined;
-    params.endDate = searchForm.startDateRange
-      ? searchForm.startDateRange[1]
-      : undefined;
-  }
-  params.page = currentPage.value - 1;
-  params.size = pageSize.value;
 
   try {
-    const response = await axios.get("/api/admin/goals-progress", { params });
-    goalsProgress.value = response.data.content;
-    total.value = response.data.totalElements;
-
-    if (
-      goalsProgress.value.length === 0 &&
-      (searchForm.userId || searchForm.name || searchForm.startDateRange)
-    ) {
-      ElMessage.warning("查無符合條件的目標與進度");
-    }
+    const response = await axios.get(apiUrl, { params });
+    goalsProgress.value = response.data;
+    total.value = response.data.length;
   } catch (error) {
-    console.error("獲取用戶目標與進度失敗", error);
-    ElMessage.error("獲取用戶目標與進度失敗");
+    console.error("獲取健身目標失敗", error);
+    ElMessage.error("獲取健身目標失敗");
   }
 };
 
@@ -204,7 +211,7 @@ const openEditDialog = (row) => {
   if (row) {
     Object.assign(editForm, row);
   } else {
-    editForm.id = null;
+    editForm.goalId = null; // 將 id 更名為 goalId
     editForm.userId = null;
     editForm.goalType = "";
     editForm.targetValue = null;
@@ -227,29 +234,32 @@ const saveEdit = async () => {
       endDate: editForm.endDate,
       status: editForm.status,
     };
-    if (editForm.id) {
-      await axios.put(`/api/admin/goals-progress/${editForm.id}`, payload);
-      ElMessage.success("目標與進度更新成功");
+    if (editForm.goalId) {
+      await axios.put(`/api/tracking/fitnessgoals/${editForm.goalId}`, payload);
+      ElMessage.success("健身目標更新成功");
     } else {
-      await axios.post("/api/admin/goals-progress", payload);
-      ElMessage.success("目標新增成功");
+      await axios.post("/api/tracking/fitnessgoals", payload);
+      ElMessage.success("健身目標新增成功");
     }
     editDialogVisible.value = false;
     fetchGoalsProgress();
   } catch (error) {
-    console.error(editForm.id ? "更新目標與進度失敗" : "新增目標失敗", error);
-    ElMessage.error(editForm.id ? "更新目標與進度失敗" : "新增目標失敗");
+    console.error(
+      editForm.goalId ? "更新健身目標失敗" : "新增健身目標失敗",
+      error
+    );
+    ElMessage.error(editForm.goalId ? "更新健身目標失敗" : "新增健身目標失敗");
   }
 };
 
 const handleDelete = async (id) => {
   try {
-    await axios.delete(`/api/admin/goals-progress/${id}`);
-    ElMessage.success("目標已刪除");
+    await axios.delete(`/api/tracking/fitnessgoals/${id}`);
+    ElMessage.success("健身目標已刪除");
     fetchGoalsProgress();
   } catch (error) {
-    console.error("刪除目標失敗", error);
-    ElMessage.error("刪除目標失敗");
+    console.error("刪除健身目標失敗", error);
+    ElMessage.error("刪除健身目標失敗");
   }
 };
 
@@ -264,6 +274,8 @@ const handleCurrentChange = (page) => {
 };
 
 onMounted(() => {
+  // 初始載入時，可以根據需要查詢特定用戶的目標，或者不帶參數查詢所有（如果後端支持）
+  // 目前前端預設會查詢 userId 為空的，後端可能會返回所有用戶的目標（如果沒有 userId）。
   fetchGoalsProgress();
 });
 </script>
@@ -281,10 +293,6 @@ onMounted(() => {
 }
 
 .pagination .el-button {
-  /* 可以根據需要調整樣式以更接近重置按鈕 */
-  /* 例如： */
-  /* background-color: #fff; */
-  /* color: #606266; */
-  /* border-color: #dcdfe6; */
+  /* 可以根據需要調整樣式 */
 }
 </style>

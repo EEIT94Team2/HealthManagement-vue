@@ -1,41 +1,99 @@
 <template>
   <div>
-    <h1>報告與數據分析</h1>
+    <h1>綜合數據報告</h1>
     <div>
-      <h2>綜合數據報告</h2>
-      <div style="height: 300px"></div>
-    </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 20px">
+        <el-card style="width: 250px">
+          <template #header>
+            <div class="card-header">
+              <span>總訓練次數</span>
+            </div>
+          </template>
+          <div style="text-align: center; font-size: 24px; font-weight: bold">
+            {{ dashboardStats.totalWorkouts }}
+          </div>
+        </el-card>
 
-    <div>
-      <h2>不同維度的分析報告</h2>
+        <el-card style="width: 250px">
+          <template #header>
+            <div class="card-header">
+              <span>總訓練時長 (分鐘)</span>
+            </div>
+          </template>
+          <div style="text-align: center; font-size: 24px; font-weight: bold">
+            {{ dashboardStats.totalWorkoutMinutes }}
+          </div>
+        </el-card>
+
+        <el-card style="width: 250px">
+          <template #header>
+            <div class="card-header">
+              <span>總燃燒卡路里</span>
+            </div>
+          </template>
+          <div style="text-align: center; font-size: 24px; font-weight: bold">
+            {{
+              dashboardStats.totalCaloriesBurned
+                ? dashboardStats.totalCaloriesBurned.toFixed(2)
+                : 0
+            }}
+          </div>
+        </el-card>
+
+        <el-card style="width: 250px">
+          <template #header>
+            <div class="card-header">
+              <span>本週活躍用戶數</span>
+            </div>
+          </template>
+          <div style="text-align: center; font-size: 24px; font-weight: bold">
+            {{ dashboardStats.activeUsersThisWeek }}
+          </div>
+        </el-card>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-// 這裡可以引入圖表庫，並從後端獲取數據進行分析和展示
-import { onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import axios from "axios";
 import { ElMessage } from "element-plus";
 // import * as echarts from 'echarts'; // 如果你使用 ECharts
 
-onMounted(() => {
-  // 獲取報告數據的邏輯
-  fetchReportData();
+const dashboardStats = ref({
+  // totalUsers: 0, // 移除 totalUsers 屬性
+  totalWorkouts: 0,
+  totalWorkoutMinutes: 0,
+  totalCaloriesBurned: 0,
+  activeUsersThisWeek: 0,
 });
 
-const fetchReportData = async () => {
+onMounted(() => {
+  fetchDashboardStats();
+});
+
+const fetchDashboardStats = async () => {
   try {
-    const response = await axios.get("/api/admin/reports"); // 替換為你的 API 端點
-    console.log("報告數據:", response.data);
-    // 在這裡處理和展示報告數據，例如使用 ECharts 繪製圖表
+    const token = localStorage.getItem("authToken");
+    const response = await axios.get("/api/fitness/dashboard/stats", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    dashboardStats.value = response.data;
+    console.log("儀表板統計數據:", response.data);
   } catch (error) {
-    console.error("獲取報告數據失敗", error);
-    ElMessage.error("獲取報告數據失敗");
+    console.error("獲取儀表板統計數據失敗", error);
+    ElMessage.error("獲取儀表板統計數據失敗");
   }
 };
 </script>
 
 <style scoped>
-/* 樣式可以根據你的喜好添加 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 </style>

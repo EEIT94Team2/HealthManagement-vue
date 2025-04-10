@@ -11,39 +11,45 @@
       <el-form-item>
         <el-button type="primary" @click="login">登入</el-button>
       </el-form-item>
-      <p v-if="loginError" style="color: red;">{{ loginError }}</p>
+      <p v-if="loginError" style="color: red">{{ loginError }}</p>
     </el-form>
     <p>還沒有帳號？<router-link to="/member/register">立即註冊</router-link></p>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import axios from 'axios';
-import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ref } from "vue";
+import axios from "axios";
+import { useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
 
 const router = useRouter();
 const loginForm = ref({
-  email: '',
-  password: '',
+  email: "",
+  password: "",
 });
-const loginError = ref('');
+const loginError = ref("");
 
 const login = async () => {
-  loginError.value = '';
+  loginError.value = "";
   try {
-    const response = await axios.post('/auth/login', loginForm.value);
+    // 修改 API 端點 URL 以匹配後端 @RequestMapping("/api/auth")
+    const response = await axios.post("/api/auth/login", loginForm.value);
     const { token, role } = response.data.data;
 
-    localStorage.setItem('authToken', token);
-    localStorage.setItem('userRole', role);
+    localStorage.setItem("authToken", token);
+    localStorage.setItem("userRole", role);
 
-    ElMessage.success('登入成功！');
-    router.push('/dashboard');
+    ElMessage.success("登入成功！");
+    router.push("/dashboard"); // 確保你的前端路由中有 /dashboard
   } catch (error) {
-    console.error('登入失敗', error);
-    loginError.value = '電子郵件或密碼錯誤，請重新輸入。';
+    console.error("登入失敗", error);
+    // 嘗試顯示後端返回的具體錯誤訊息
+    if (error.response && error.response.data && error.response.data.message) {
+      loginError.value = error.response.data.message;
+    } else {
+      loginError.value = "電子郵件或密碼錯誤，請重新輸入。";
+    }
   }
 };
 </script>

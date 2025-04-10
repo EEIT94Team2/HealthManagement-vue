@@ -65,9 +65,9 @@
         <el-menu-item index="/fitness/admin/workouts">
           <span>運動紀錄管理</span>
         </el-menu-item>
-        <el-menu-item index="/fitness/admin/diet">
+        <!-- <el-menu-item index="/fitness/admin/diet">
           <span>飲食紀錄管理</span>
-        </el-menu-item>
+        </el-menu-item> -->
         <el-menu-item index="/fitness/admin/body">
           <span>身體數據管理</span>
         </el-menu-item>

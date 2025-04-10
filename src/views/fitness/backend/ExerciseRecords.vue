@@ -50,6 +50,7 @@
       <el-table-column
         prop="caloriesBurned"
         label="消耗卡路里"
+        :formatter="formatCalories"
       ></el-table-column>
       <el-table-column prop="exerciseDate" label="日期"></el-table-column>
       <el-table-column label="操作" width="150">
@@ -96,7 +97,17 @@
           ></el-input>
         </el-form-item>
         <el-form-item label="運動類型">
-          <el-input v-model="editForm.exerciseType"></el-input>
+          <el-select
+            v-model="editForm.exerciseType"
+            placeholder="請選擇運動類型"
+          >
+            <el-option
+              v-for="type in exerciseTypes"
+              :key="type"
+              :label="type"
+              :value="type"
+            ></el-option>
+          </el-select>
         </el-form-item>
         <el-form-item label="運動時間 (分鐘)">
           <el-input-number
@@ -148,36 +159,71 @@ const editForm = reactive({
   exerciseDate: null,
 });
 
+const exerciseTypes = ref([
+  "跑步",
+  "游泳",
+  "騎自行車",
+  "跳繩",
+  "瑜珈",
+  "健身房器械",
+  "徒手健身",
+  "高強度間歇訓練 (HIIT)",
+  "快走",
+  "爬山",
+  "滑雪",
+  "舞蹈",
+  "划船機",
+  "重訓",
+  "橢圓機",
+  "腳踏車競賽",
+  "打籃球",
+  "踢足球",
+  "攀岩",
+  "健走",
+]);
+
+const getAuthHeaders = () => ({
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+  },
+});
+
+const formatCalories = (row, column, cellValue) => {
+  if (cellValue !== null && cellValue !== undefined) {
+    return parseFloat(cellValue).toFixed(1);
+  }
+  return "";
+};
+
 const fetchWorkoutRecords = async () => {
   const params = {
-    page: currentPage.value - 1, // 後端通常從 0 開始
+    page: currentPage.value - 1,
     size: pageSize.value,
     exerciseType: searchForm.type || undefined,
     startDate: searchForm.dateRange ? searchForm.dateRange[0] : undefined,
     endDate: searchForm.dateRange ? searchForm.dateRange[1] : undefined,
   };
 
-  let apiUrl = "/tracking/exercise-records"; // 預設 API 路徑
-
+  let apiUrl = "/api/tracking/exercise-records";
   if (searchForm.userId && searchForm.name) {
-    // 同時根據用戶 ID 和姓名查詢
-    apiUrl = `/tracking/exercise-records/user/${searchForm.userId}/by-name?userName=${searchForm.name}`;
+    apiUrl = `/api/tracking/exercise-records/user/${searchForm.userId}/by-name?userName=${searchForm.name}`;
   } else if (searchForm.userId) {
-    // 僅根據用戶 ID 查詢
-    apiUrl = `/tracking/exercise-records/user/${searchForm.userId}`;
+    apiUrl = `/api/tracking/exercise-records/user/${searchForm.userId}`;
   } else if (searchForm.name) {
-    // 僅根據姓名查詢
-    apiUrl = `/tracking/exercise-records/by-name?userName=${searchForm.name}`;
+    apiUrl = `/api/tracking/exercise-records/by-name?userName=${searchForm.name}`;
   }
 
   try {
-    const response = await axios.get(apiUrl, { params });
-    workoutRecords.value = response.data; // 後端返回的是 DTO 列表
-    total.value = response.data.length; // 假設後端沒有提供 totalElements，這裡使用返回的資料長度
+    const response = await axios.get(apiUrl, { params, ...getAuthHeaders() });
+    workoutRecords.value = response.data.content;
+    total.value = response.data.totalElements;
 
     if (
       workoutRecords.value.length === 0 &&
-      (searchForm.userId || searchForm.name)
+      (searchForm.userId ||
+        searchForm.name ||
+        searchForm.type ||
+        searchForm.dateRange)
     ) {
       ElMessage.warning("查無符合條件的健身紀錄");
     }
@@ -189,14 +235,12 @@ const fetchWorkoutRecords = async () => {
 
 const handleSizeChange = (size) => {
   pageSize.value = size;
-  // 注意：如果後端沒有分頁，前端分頁可能需要自己處理
-  // fetchWorkoutRecords();
+  fetchWorkoutRecords();
 };
 
 const handleCurrentChange = (page) => {
   currentPage.value = page;
-  // 注意：如果後端沒有分頁，前端分頁可能需要自己處理
-  // fetchWorkoutRecords();
+  fetchWorkoutRecords();
 };
 
 const resetSearchForm = () => {
@@ -231,12 +275,17 @@ const saveEdit = async () => {
   try {
     if (editForm.recordId) {
       await axios.put(
-        `/tracking/exercise-records/${editForm.recordId}`,
-        editForm
+        `/api/tracking/exercise-records/${editForm.recordId}`,
+        editForm,
+        getAuthHeaders()
       );
       ElMessage.success("健身紀錄更新成功");
     } else {
-      await axios.post("/tracking/exercise-records", editForm);
+      await axios.post(
+        "/api/tracking/exercise-records",
+        editForm,
+        getAuthHeaders()
+      );
       ElMessage.success("健身紀錄新增成功");
     }
     editDialogVisible.value = false;
@@ -254,7 +303,10 @@ const saveEdit = async () => {
 
 const handleDelete = async (id) => {
   try {
-    await axios.delete(`/tracking/exercise-records/${id}`);
+    await axios.delete(
+      `/api/tracking/exercise-records/${id}`,
+      getAuthHeaders()
+    );
     ElMessage.success("健身紀錄刪除成功");
     fetchWorkoutRecords();
   } catch (error) {
