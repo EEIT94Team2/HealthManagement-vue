@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { ElMessage } from "element-plus";
 import Layout from "@/components/Layouts/index.vue";
 import HomePage from "@/views/HomePage.vue";
 import CourseList from "@/views/course/CourseList.vue";
@@ -8,6 +9,7 @@ import CourseForm from "@/views/course/CourseForm.vue";
 import MemberLoginView from "@/views/member/MemberLoginView.vue";
 import MemberRegisterView from "@/views/member/MemberRegisterView.vue";
 import MemberProfileView from "@/views/member/MemberProfileView.vue";
+import MemberManagement from "@/views/member/MemberManagement.vue";
 
 // 商城管理
 import OrderList from "@/views/shop/OrderList.vue";
@@ -74,6 +76,12 @@ const routes = [
                 name: "MemberProfile",
                 component: MemberProfileView,
                 meta: { title: "會員資料", requiresAuth: true }, // 需要登入
+            },
+            {
+                path: "member/management",
+                name: "MemberManagement",
+                component: MemberManagement,
+                meta: { title: "會員總管", requiresAuth: true, requiresAdmin: true }, // 需要管理員權限
             },
             {
                 path: "shop/orders",
@@ -166,6 +174,15 @@ router.beforeEach((to, from, next) => {
         if (!authToken) {
             // 如果需要授權且沒有 token，則導向登入頁面
             next("/member/login");
+        } else if (to.meta.requiresAdmin) {
+            // 檢查是否有管理員權限
+            const userRole = localStorage.getItem("userRole");
+            if (userRole !== "admin") {
+                ElMessage.error("您沒有訪問此頁面的權限");
+                next("/dashboard");
+            } else {
+                next();
+            }
         } else {
             // 如果有 token，則繼續導航
             next();

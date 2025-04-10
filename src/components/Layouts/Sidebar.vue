@@ -29,6 +29,9 @@
                 <el-menu-item index="/member/profile">
                     <span>會員資料</span>
                 </el-menu-item>
+                <el-menu-item index="/member/management" v-if="userRole === 'admin'">
+                    <span>會員總管</span>
+                </el-menu-item>
             </el-sub-menu>
 
             <el-sub-menu index="courses">
@@ -96,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, defineEmits } from "vue";
+import { ref, defineEmits, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import {
     HomeFilled,
@@ -113,6 +116,12 @@ const isCollapse = ref(false);
 const emit = defineEmits(["update-title"]); // 定義發射的事件
 const logo = ref(logoImage);
 const title = ref("你今天健了嗎");
+const userRole = ref('');
+
+onMounted(() => {
+    // 從localStorage獲取用戶角色
+    userRole.value = localStorage.getItem('userRole') || '';
+});
 
 const handleSelect = (index, indexPath) => {
     let title = "後端管理系統"; // 預設標題
@@ -128,6 +137,9 @@ const handleSelect = (index, indexPath) => {
             break;
         case "/member/profile":
             title = "會員資料";
+            break;
+        case "/member/management":
+            title = "會員總管";
             break;
         case "/courses":
             title = "課程列表";
