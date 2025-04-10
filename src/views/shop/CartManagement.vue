@@ -12,7 +12,12 @@
                 </el-button>
             </div>
 
-            <el-table :data="cartItems" style="width: 100%" border v-if="cartItems.length > 0">
+            <el-table
+                :data="paginatedCartItems"
+                style="width: 100%"
+                border
+                v-if="cartItems.length > 0"
+            >
                 <el-table-column prop="product.name" label="商品名稱" min-width="120" />
                 <el-table-column prop="product.description" label="商品簡介" min-width="200">
                     <template #default="scope">
@@ -50,6 +55,19 @@
                 </el-table-column>
             </el-table>
 
+            <!-- 購物車分頁 -->
+            <el-pagination
+                v-if="cartItems.length > cartPageSize"
+                v-model:current-page="cartCurrentPage"
+                v-model:page-size="cartPageSize"
+                :page-sizes="[5, 10, 20, 50]"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="cartItems.length"
+                @size-change="handleCartSizeChange"
+                @current-change="handleCartCurrentChange"
+                style="margin-top: 20px; justify-content: center"
+            />
+
             <el-empty v-if="cartItems.length === 0" description="購物車為空" :image-size="200">
                 <span class="empty-cart-tip">您可以從下方商品列表選擇商品添加到購物車</span>
             </el-empty>
@@ -79,7 +97,12 @@
             </div>
 
             <!-- 商品列表 -->
-            <el-table :data="products" style="width: 100%" border v-if="products.length > 0">
+            <el-table
+                :data="paginatedProducts"
+                style="width: 100%"
+                border
+                v-if="products.length > 0"
+            >
                 <el-table-column prop="id" label="商品ID" width="80" />
                 <el-table-column prop="name" label="商品名稱" min-width="120" />
                 <el-table-column prop="description" label="商品簡介" min-width="200">
@@ -116,6 +139,20 @@
                     </template>
                 </el-table-column>
             </el-table>
+
+            <!-- 商品分頁 -->
+            <el-pagination
+                v-if="products.length > productPageSize"
+                v-model:current-page="productCurrentPage"
+                v-model:page-size="productPageSize"
+                :page-sizes="[5, 10, 20, 50]"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="products.length"
+                @size-change="handleProductSizeChange"
+                @current-change="handleProductCurrentChange"
+                style="margin-top: 20px; justify-content: center"
+            />
+
             <el-empty v-if="products.length === 0" description="沒有找到商品" />
         </div>
 
@@ -143,6 +180,14 @@ const products = ref([]);
 const cartItems = ref([]);
 const searchKeyword = ref("");
 const showSuccessDialog = ref(false);
+
+// 購物車分頁
+const cartCurrentPage = ref(1);
+const cartPageSize = ref(5);
+
+// 商品分頁
+const productCurrentPage = ref(1);
+const productPageSize = ref(10);
 
 onMounted(() => {
     fetchAllProducts();
@@ -255,7 +300,12 @@ const fetchCartItems = async () => {
             return;
         }
 
-        const response = await axios.get("/api/cart/items", {
+        // 從localStorage獲取當前用戶ID
+        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+        const userId = userData.userId || 21; // 默認使用ID 21
+
+        // 使用查詢參數傳遞用戶ID
+        const response = await axios.get(`/api/cart/items?userId=${userId}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
@@ -297,103 +347,87 @@ const addToCart = async (product) => {
             return;
         }
 
-        // 確保購買數量不超過庫存
-        if (product.quantity > product.stockQuantity) {
-            product.quantity = product.stockQuantity;
-        }
-
-        const cartItemRequest = {
-            productId: product.id,
-            quantity: product.quantity,
-        };
-
-        console.log(`嘗試添加商品到購物車:`, cartItemRequest);
-        console.log("請求路徑: /api/cart/items");
-        console.log("請求方法: POST");
-        console.log("請求數據:", JSON.stringify(cartItemRequest));
-
-        // 假設用戶已經登錄，從localStorage獲取token
         const token = localStorage.getItem("authToken");
         if (!token) {
-            ElMessage.error("請先登錄");
+            ElMessage.error("請先登錄後再添加商品到購物車");
+            router.push("/member/login");
             return;
         }
 
-        const response = await axios.post("/api/cart/items", cartItemRequest, {
+        // 從localStorage獲取當前用戶ID
+        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+        const userId = userData.userId || 21; // 默認使用ID 21
+
+        // 修改請求數據格式
+        const cartItemRequest = {
+            productId: product.id,
+            quantity: product.quantity || 1,
+        };
+
+        console.log("添加購物車請求數據:", cartItemRequest, "用戶ID:", userId);
+
+        // 使用查詢參數傳遞用戶ID
+        const response = await axios.post(`/api/cart/items?userId=${userId}`, cartItemRequest, {
             headers: {
+                "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
         });
 
-        console.log("添加購物車響應:", response);
-
-        // 兼容兩種響應格式
-        if (
-            (response.data && response.data.success) ||
-            (response.data && response.data.status === "success")
-        ) {
+        if (response.data && (response.data.success || response.data.status === "success")) {
             showSuccessDialog.value = true;
             ElMessage.success("商品已成功加入購物車！");
-            fetchCartItems(); // 重新獲取購物車內容
+            await fetchCartItems();
         } else {
-            console.error("添加到購物車失敗: 響應格式不符合預期");
-            ElMessage.error(response.data?.message || "添加到購物車失敗");
+            throw new Error(response.data?.message || "添加失敗");
         }
     } catch (error) {
         console.error("添加到購物車失敗:", error);
-        if (error.response) {
-            console.error("錯誤狀態:", error.response.status);
-            console.error("錯誤數據:", error.response.data);
-            const errorMessage =
-                error.response.data?.message || error.response.statusText || "未知錯誤";
-            ElMessage.error(`添加到購物車失敗: ${errorMessage}`);
+        if (error.response?.status === 400) {
+            ElMessage.error("請檢查輸入的數據格式是否正確");
         } else {
-            ElMessage.error("添加到購物車失敗，請稍後重試");
+            ElMessage.error(error.response?.data?.message || "添加到購物車失敗，請稍後重試");
         }
     }
 };
 
-// 更新購物車中的商品數量
+// 更新購物車商品數量
 const updateCartItemQuantity = async (cartItem) => {
     try {
-        console.log(`嘗試更新購物車商品數量:`, cartItem);
-        console.log(
-            "請求路徑: /api/cart/items/" + cartItem.id + "/quantity?quantity=" + cartItem.quantity
-        );
-        console.log("請求方法: PUT");
-
         const token = localStorage.getItem("authToken");
         if (!token) {
             ElMessage.error("請先登錄");
             return;
         }
 
+        // 從localStorage獲取當前用戶ID
+        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+        const userId = userData.userId || 21; // 默認使用ID 21
+
         const response = await axios.put(
-            `/api/cart/items/${cartItem.id}/quantity?quantity=${cartItem.quantity}`,
-            {},
+            `/api/cart/items/${cartItem.id}?userId=${userId}`,
+            {
+                productId: cartItem.product.id,
+                quantity: cartItem.quantity,
+            },
             {
                 headers: {
+                    "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
             }
         );
 
-        // 兼容兩種響應格式
-        if (
-            (response.data && response.data.success) ||
-            (response.data && response.data.status === "success")
-        ) {
+        if (response.data && (response.data.success || response.data.status === "success")) {
             ElMessage.success("數量已更新");
-            fetchCartItems(); // 重新獲取購物車內容以更新價格計算
+            await fetchCartItems();
         } else {
-            console.error("更新數量失敗: 響應格式不符合預期");
-            ElMessage.error(response.data?.message || "更新數量失敗");
-            fetchCartItems(); // 重置為原始數據
+            throw new Error(response.data?.message || "更新失敗");
         }
     } catch (error) {
         console.error("更新購物車數量失敗:", error);
         ElMessage.error("更新數量失敗，請稍後重試");
-        fetchCartItems(); // 重置為原始數據
+        await fetchCartItems();
     }
 };
 
@@ -401,8 +435,6 @@ const updateCartItemQuantity = async (cartItem) => {
 const removeFromCart = async (cartItemId) => {
     try {
         console.log(`嘗試從購物車移除商品，ID:`, cartItemId);
-        console.log("請求路徑: /api/cart/items/" + cartItemId);
-        console.log("請求方法: DELETE");
 
         const token = localStorage.getItem("authToken");
         if (!token) {
@@ -410,7 +442,11 @@ const removeFromCart = async (cartItemId) => {
             return;
         }
 
-        const response = await axios.delete(`/api/cart/items/${cartItemId}`, {
+        // 從localStorage獲取當前用戶ID
+        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+        const userId = userData.userId || 21; // 默認使用ID 21
+
+        const response = await axios.delete(`/api/cart/items/${cartItemId}?userId=${userId}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
@@ -468,7 +504,11 @@ const clearCart = async () => {
             return;
         }
 
-        const response = await axios.delete(`/api/cart/clear`, {
+        // 從localStorage獲取當前用戶ID
+        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+        const userId = userData.userId || 21; // 默認使用ID 21
+
+        const response = await axios.delete(`/api/cart/clear?userId=${userId}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
@@ -491,6 +531,40 @@ const clearCart = async () => {
             ElMessage.error("清空購物車失敗");
         }
     }
+};
+
+// 分頁後的購物車數據
+const paginatedCartItems = computed(() => {
+    const start = (cartCurrentPage.value - 1) * cartPageSize.value;
+    const end = start + cartPageSize.value;
+    return cartItems.value.slice(start, end);
+});
+
+// 分頁後的商品數據
+const paginatedProducts = computed(() => {
+    const start = (productCurrentPage.value - 1) * productPageSize.value;
+    const end = start + productPageSize.value;
+    return products.value.slice(start, end);
+});
+
+// 購物車分頁處理
+const handleCartSizeChange = (size) => {
+    cartPageSize.value = size;
+    cartCurrentPage.value = 1;
+};
+
+const handleCartCurrentChange = (page) => {
+    cartCurrentPage.value = page;
+};
+
+// 商品分頁處理
+const handleProductSizeChange = (size) => {
+    productPageSize.value = size;
+    productCurrentPage.value = 1;
+};
+
+const handleProductCurrentChange = (page) => {
+    productCurrentPage.value = page;
 };
 </script>
 
