@@ -51,7 +51,7 @@ const form = ref({
 
 const fetchCourse = async (id) => {
   try {
-    const response = await axios.get(`/courses/${id}`);
+    const response = await axios.get(`/api/courses/${id}`);
     form.value = {
       name: response.data.name,
       description: response.data.description,
@@ -70,7 +70,7 @@ const fetchCourse = async (id) => {
 const handleSubmit = async () => {
   try {
     if (isEdit) {
-      await axios.put(`/courses/${courseId}`, form.value);
+      await axios.put(`/api/courses/${courseId}`, form.value);
       ElMessage.success('課程編輯成功');
     } else {
       await axios.post('/courses', form.value);
