@@ -85,6 +85,19 @@
                     </el-table-column>
                 </el-table>
             </div>
+
+            <!-- 添加分頁組件 -->
+            <div class="pagination-container">
+                <el-pagination
+                    v-model:current-page="currentPage"
+                    v-model:page-size="pageSize"
+                    :page-sizes="[10, 20, 50, 100]"
+                    :total="total"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    @size-change="handleSizeChange"
+                    @current-change="handleCurrentChange"
+                />
+            </div>
         </el-card>
     </div>
 </template>
@@ -97,6 +110,9 @@ import axios from "axios";
 
 const router = useRouter();
 const orders = ref([]);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
 
 // 移除用戶ID硬編碼
 // const userId = 1;
@@ -104,39 +120,33 @@ const orders = ref([]);
 // 獲取訂單列表
 const fetchOrders = async () => {
     try {
-        // 修改: 移除userId查詢參數
-        const response = await axios.get(`/api/order`);
-        console.log("獲取訂單列表響應:", response.data);
+        const params = {
+            page: currentPage.value - 1, // 後端分頁從0開始
+            size: pageSize.value,
+        };
 
-        // 兼容多種響應格式
-        if (response.data) {
-            if (response.data.status === "success" && response.data.data) {
-                // {status: "success", data: [...]}
-                orders.value = response.data.data;
-            } else if (response.data.success && response.data.data) {
-                // {success: true, data: [...]}
-                orders.value = response.data.data;
-            } else if (Array.isArray(response.data)) {
-                // 直接返回數組
-                orders.value = response.data;
+        const response = await axios.get("/api/orders", { params });
+
+        if (response.data && (response.data.success || response.data.status === "success")) {
+            const data = response.data.data || response.data;
+            // 處理分頁數據
+            if (data.content) {
+                orders.value = data.content;
+                total.value = data.totalElements;
+                currentPage.value = data.number + 1; // 後端返回的頁碼從0開始，前端顯示從1開始
             } else {
-                console.error("獲取訂單列表失敗: 響應格式不符合預期");
-                console.log("完整響應:", response.data);
-                orders.value = [];
-                ElMessage.error("獲取訂單列表失敗，API響應格式不符");
+                // 處理非分頁數據
+                orders.value = Array.isArray(data) ? data : [];
+                total.value = orders.value.length;
             }
         } else {
-            orders.value = [];
-            ElMessage.error("獲取訂單列表失敗，沒有收到響應數據");
+            throw new Error(response.data?.message || "獲取訂單列表失敗");
         }
     } catch (error) {
         console.error("獲取訂單列表失敗:", error);
-        if (error.response) {
-            console.error("錯誤狀態:", error.response.status);
-            console.error("錯誤數據:", error.response.data);
-        }
+        ElMessage.error(error.response?.data?.message || "獲取訂單列表失敗，請稍後重試");
         orders.value = [];
-        ElMessage.error("獲取訂單列表失敗");
+        total.value = 0;
     }
 };
 
@@ -194,7 +204,22 @@ const getStatusText = (status) => {
     return texts[status] || status;
 };
 
-onMounted(fetchOrders);
+// 處理頁碼改變
+const handleCurrentChange = async (val) => {
+    currentPage.value = val;
+    await fetchOrders();
+};
+
+// 處理每頁顯示數量改變
+const handleSizeChange = async (val) => {
+    pageSize.value = val;
+    currentPage.value = 1;
+    await fetchOrders();
+};
+
+onMounted(() => {
+    fetchOrders();
+});
 </script>
 
 <style scoped>
@@ -252,5 +277,11 @@ onMounted(fetchOrders);
 .action-buttons {
     display: flex;
     gap: 8px;
+}
+
+.pagination-container {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
 }
 </style>

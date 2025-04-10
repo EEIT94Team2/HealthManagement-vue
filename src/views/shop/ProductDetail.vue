@@ -185,21 +185,64 @@ const addToCart = async () => {
     }
 
     try {
+        // 確保用戶已登錄
+        const token = localStorage.getItem("authToken");
+        if (!token) {
+            ElMessage.error("請先登錄後再添加商品到購物車");
+            router.push("/member/login"); // 導向登錄頁
+            return;
+        }
+
+        // 精簡購物車添加請求
         const cartItemRequest = {
             productId: product.value.id,
-            quantity: quantity.value,
+            quantity: quantity.value || 1,
         };
 
-        const response = await axios.post(`/api/cart/items`, cartItemRequest);
+        console.log("添加購物車請求:", cartItemRequest);
 
-        if (response.data.status === "success") {
+        const response = await axios.post(`/api/cart/items`, cartItemRequest, {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        console.log("添加購物車響應:", response.data);
+
+        // 簡化響應處理邏輯
+        if (response.data && (response.data.success || response.data.status === "success")) {
             showSuccessDialog.value = true;
+            ElMessage.success("商品已成功加入購物車！");
         } else {
-            ElMessage.error(response.data.message || "添加到購物車失敗");
+            ElMessage.error("添加到購物車失敗");
         }
     } catch (error) {
         console.error("添加到購物車失敗:", error);
-        ElMessage.error("添加到購物車失敗");
+
+        // 詳細錯誤處理
+        if (error.response) {
+            console.error("錯誤狀態:", error.response.status);
+            console.error("錯誤數據:", error.response.data);
+
+            // 檢查是否為數據庫欄位錯誤
+            if (
+                error.response.data &&
+                error.response.data.message &&
+                error.response.data.message.includes("PreparedStatementCallback")
+            ) {
+                console.error("可能是數據庫欄位名稱錯誤！請檢查後端代碼與數據庫表結構是否一致");
+                ElMessage.error("數據庫操作失敗，請聯繫管理員");
+            } else if (error.response.status === 401) {
+                ElMessage.error("請重新登錄後再添加商品到購物車");
+                router.push("/member/login");
+            } else {
+                const errorMsg = error.response.data?.message || "未知錯誤";
+                ElMessage.error(`添加到購物車失敗: ${errorMsg}`);
+            }
+        } else {
+            ElMessage.error("添加到購物車失敗，請稍後重試");
+        }
     }
 };
 
