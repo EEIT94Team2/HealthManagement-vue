@@ -43,6 +43,10 @@
         prop="hipCircumference"
         label="臀圍 (公分)"
       ></el-table-column>
+      <el-table-column
+        prop="muscleMass"
+        label="肌肉量 (公斤)"
+      ></el-table-column>
       <el-table-column prop="dateRecorded" label="測量日期"></el-table-column>
       <el-table-column label="操作" width="150">
         <template #default="scope">
@@ -126,6 +130,13 @@
             :step="0.1"
           ></el-input-number>
         </el-form-item>
+        <el-form-item label="肌肉量 (公斤)">
+          <el-input-number
+            v-model="editForm.muscleMass"
+            :min="0"
+            :step="0.1"
+          ></el-input-number>
+        </el-form-item>
         <el-form-item label="測量日期">
           <el-date-picker
             v-model="editForm.dateRecorded"
@@ -164,13 +175,14 @@ const editDialogVisible = ref(false);
 const editForm = reactive({
   id: null,
   userId: null,
-  userName: "", // 用於表格顯示
+  userName: "",
   weight: null,
   bodyFat: null,
   height: null,
   waistCircumference: null,
   hipCircumference: null,
   dateRecorded: null,
+  muscleMass: null, // 添加肌肉量屬性
 });
 
 const getAuthHeaders = () => ({
@@ -256,6 +268,7 @@ const saveEdit = async () => {
       waistCircumference: editForm.waistCircumference,
       hipCircumference: editForm.hipCircumference,
       dateRecorded: editForm.dateRecorded,
+      muscleMass: editForm.muscleMass, // 包含肌肉量
     };
 
     console.log("準備發送的數據:", payload);
