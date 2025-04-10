@@ -27,7 +27,7 @@ const routes = [
   {
     path: '/',
     component: Layout,
-    redirect: '/dashboard',
+    redirect: '/member/login',
     children: [
       {
         path: 'dashboard',
@@ -128,20 +128,20 @@ const router = createRouter({
   routes,
 });
 
-// router.beforeEach((to, from, next) => {
-//   if (to.meta.requiresAuth) {
-//     const authToken = localStorage.getItem('authToken');
-//     if (!authToken) {
-//       // 如果需要授權且沒有 token，則導向登入頁面
-//       next('/member/login');
-//     } else {
-//       // 如果有 token，則繼續導航
-//       next();
-//     }
-//   } else {
-//     // 如果不需要授權，則繼續導航
-//     next();
-//   }
-// });
+router.beforeEach((to, from, next) => {
+  if (to.meta.requiresAuth) {
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+      // 如果需要授權且沒有 token，則導向登入頁面
+      next('/member/login');
+    } else {
+      // 如果有 token，則繼續導航
+      next();
+    }
+  } else {
+    // 如果不需要授權，則繼續導航
+    next();
+  }
+});
 
 export default router;
