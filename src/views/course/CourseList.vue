@@ -228,7 +228,7 @@ const searchByCoachName = reactive({ name: '', courses: [], performed: false });
 
 const fetchCourses = async () => {
   try {
-    const response = await axios.get('/courses');
+    const response = await axios.get('/api/courses');
     courses.value = response.data;
     totalCourses.value = courses.value.length;
     closeForm();
@@ -291,7 +291,7 @@ const resetForm = () => {
 const handleDelete = async (id) => {
   if (window.confirm('確定要刪除此課程嗎？')) {
     try {
-      await axios.delete(`/courses/${id}`);
+      await axios.delete(`/api/courses/${id}`);
       ElMessage.success('課程刪除成功');
       fetchCourses();
     } catch (error) {
@@ -317,7 +317,7 @@ const searchCourseById = async () => {
     return;
   }
   try {
-    const response = await axios.get(`/courses/${searchById.id}`);
+    const response = await axios.get(`/api/courses/${searchById.id}`);
     searchById.course = response.data;
     searchById.performed = true;
     activeSearch.value = 'byId';
@@ -336,7 +336,7 @@ const searchCourseByName = async () => {
     return;
   }
   try {
-    const response = await axios.get(`/courses/course_search?name=${searchByName.name}`);
+    const response = await axios.get(`/api/courses/course_search?name=${searchByName.name}`);
     searchByName.courses = response.data;
     searchByName.performed = true;
     activeSearch.value = 'byName';
@@ -358,7 +358,7 @@ const searchCourseByCoachId = async () => {
     return;
   }
   try {
-    const response = await axios.get(`/courses/coach?coachId=${searchByCoachId.coachId}`);
+    const response = await axios.get(`/api/courses/coach?coachId=${searchByCoachId.coachId}`);
     searchByCoachId.courses = response.data;
     searchByCoachId.performed = true;
     activeSearch.value = 'byCoachId';
@@ -377,7 +377,7 @@ const searchCourseByCoachName = async () => {
     return;
   }
   try {
-    const response = await axios.get(`/courses/coach_search?coachName=${searchByCoachName.name}`);
+    const response = await axios.get(`/api/courses/coach_search?coachName=${searchByCoachName.name}`);
     searchByCoachName.courses = response.data;
     searchByCoachName.performed = true;
     activeSearch.value = 'byCoachName';
@@ -394,7 +394,7 @@ const searchCourseByCoachName = async () => {
 
 const fetchCourseToEdit = async (id) => {
   try {
-    const response = await axios.get(`/courses/${id}`);
+    const response = await axios.get(`/api/courses/${id}`);
     form.value = { ...response.data, date: new Date(response.data.date) };
   } catch (error) {
     console.error('獲取課程資訊失敗', error);
@@ -438,7 +438,7 @@ const handleSubmit = async () => {
     payload.date = formatDateForBackend(payload.date);
 
     if (editingCourseId.value) {
-      await axios.put(`/courses/${editingCourseId.value}`, payload);
+      await axios.put(`/api/courses/${editingCourseId.value}`, payload);
       ElMessage.success('課程編輯成功');
 
       if (activeSearch.value === 'byId' && searchById.performed && searchById.course?.id === editingCourseId.value) {
@@ -457,7 +457,7 @@ const handleSubmit = async () => {
         }
       }
     } else {
-      await axios.post('/courses', payload);
+      await axios.post('/api/courses', payload);
       ElMessage.success('課程新增成功');
       activeSearch.value = null; // 設定 activeSearch 為 null，顯示全部課程
       currentPage.value = 1;   // 重置頁碼到第一頁
