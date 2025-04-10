@@ -384,10 +384,10 @@ const searchByCoachName = reactive({ name: "", courses: [], performed: false });
 const fetchCourses = async () => {
     try {
         console.log("開始獲取課程列表...");
-        const response = await axios.get("/courses");
+        const response = await axios.get("/api/courses");
         console.log("課程API響應:", response);
 
-        courses.value = response.data;
+        courses.value = response.data.data || response.data;
         totalCourses.value = courses.value.length;
         closeForm();
         resetSearchStates();
@@ -476,7 +476,7 @@ const resetForm = () => {
 const handleDelete = async (id) => {
     if (window.confirm("確定要刪除此課程嗎？")) {
         try {
-            await axios.delete(`/courses/${id}`);
+            await axios.delete(`/api/courses/${id}`);
             ElMessage.success("課程刪除成功");
             fetchCourses();
         } catch (error) {
@@ -502,8 +502,8 @@ const searchCourseById = async () => {
         return;
     }
     try {
-        const response = await axios.get(`/courses/${searchById.id}`);
-        searchById.course = response.data;
+        const response = await axios.get(`/api/courses/${searchById.id}`);
+        searchById.course = response.data.data || response.data;
         searchById.performed = true;
         activeSearch.value = "byId";
     } catch (error) {
@@ -521,8 +521,8 @@ const searchCourseByName = async () => {
         return;
     }
     try {
-        const response = await axios.get(`/courses/course_search?name=${searchByName.name}`);
-        searchByName.courses = response.data;
+        const response = await axios.get(`/api/courses/course_search?name=${searchByName.name}`);
+        searchByName.courses = response.data.data || response.data;
         searchByName.performed = true;
         activeSearch.value = "byName";
         if (searchByName.courses.length === 0) {
@@ -543,8 +543,8 @@ const searchCourseByCoachId = async () => {
         return;
     }
     try {
-        const response = await axios.get(`/courses/coach?coachId=${searchByCoachId.coachId}`);
-        searchByCoachId.courses = response.data;
+        const response = await axios.get(`/api/courses/coach?coachId=${searchByCoachId.coachId}`);
+        searchByCoachId.courses = response.data.data || response.data;
         searchByCoachId.performed = true;
         activeSearch.value = "byCoachId";
     } catch (error) {
@@ -563,13 +563,13 @@ const searchCourseByCoachName = async () => {
     }
     try {
         const response = await axios.get(
-            `/courses/coach_search?coachName=${searchByCoachName.name}`
+            `/api/courses/coach_search?coachName=${searchByCoachName.name}`
         );
-        searchByCoachName.courses = response.data;
+        searchByCoachName.courses = response.data.data || response.data;
         searchByCoachName.performed = true;
         activeSearch.value = "byCoachName";
         if (searchByCoachName.courses.length === 0) {
-            ElMessage.warning("沒有找到該教練名稱的課程。");
+            ElMessage.warning("沒有找到符合該教練名稱的課程。");
         }
     } catch (error) {
         console.error("依教練名稱查詢失敗", error);
@@ -581,11 +581,21 @@ const searchCourseByCoachName = async () => {
 
 const fetchCourseToEdit = async (id) => {
     try {
-        const response = await axios.get(`/courses/${id}`);
-        form.value = { ...response.data, date: new Date(response.data.date) };
+        const response = await axios.get(`/api/courses/${id}`);
+        const courseData = response.data.data || response.data;
+        form.value = {
+            id: courseData.id,
+            name: courseData.name,
+            description: courseData.description,
+            date: courseData.date,
+            duration: courseData.duration,
+            maxCapacity: courseData.maxCapacity,
+            coachId: courseData.coachId || courseData.coach?.id,
+            coachName: courseData.coachName || courseData.coach?.name,
+        };
     } catch (error) {
-        console.error("獲取課程資訊失敗", error);
-        ElMessage.error("獲取課程資訊失敗");
+        console.error("獲取課程詳情失敗", error);
+        ElMessage.error("獲取課程詳情失敗");
         closeForm();
     }
 };
@@ -625,7 +635,7 @@ const handleSubmit = async () => {
         payload.date = formatDateForBackend(payload.date);
 
         if (editingCourseId.value) {
-            await axios.put(`/courses/${editingCourseId.value}`, payload);
+            await axios.put(`/api/courses/${editingCourseId.value}`, payload);
             ElMessage.success("課程編輯成功");
 
             if (
@@ -665,7 +675,7 @@ const handleSubmit = async () => {
                 }
             }
         } else {
-            await axios.post("/courses", payload);
+            await axios.post("/api/courses", payload);
             ElMessage.success("課程新增成功");
             activeSearch.value = null; // 設定 activeSearch 為 null，顯示全部課程
             currentPage.value = 1; // 重置頁碼到第一頁

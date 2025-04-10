@@ -12,12 +12,12 @@ import MemberProfileView from "@/views/member/MemberProfileView.vue";
 import MemberManagement from "@/views/member/MemberManagement.vue";
 
 // 商城管理
-import OrderList from "@/views/shop/OrderList.vue";
-import OrderDetail from "@/views/shop/OrderDetail.vue";
-import CartManagement from "@/views/shop/CartManagement.vue";
+// import OrderList from "@/views/shop/OrderList.vue";
+// import OrderDetail from "@/views/shop/OrderDetail.vue";
+// import CartManagement from "@/views/shop/CartManagement.vue";
 import ProductList from "@/views/shop/ProductList.vue";
 import ProductDetail from "@/views/shop/ProductDetail.vue";
-import PaymentSimulation from "@/views/shop/PaymentSimulation.vue";
+// import PaymentSimulation from "@/views/shop/PaymentSimulation.vue";
 
 // 論壇
 import ForumHomeView from "@/views/social/ForumHomeView.vue";
@@ -94,6 +94,7 @@ const routes = [
             },
 
             // 商城管理
+            /* 已注释订单管理
             {
                 path: "shop/orders",
                 name: "OrderList",
@@ -106,6 +107,7 @@ const routes = [
                 component: OrderDetail,
                 meta: { title: "訂單詳情", hidden: true, requiresAuth: true },
             },
+            */
             {
                 path: "shop/products",
                 name: "ProductList",
@@ -119,18 +121,22 @@ const routes = [
                 component: ProductDetail,
                 meta: { title: "商品詳情", hidden: true, requiresAuth: true },
             },
+            /* 已注释购物车管理
             {
                 path: "shop/cart",
                 name: "CartManagement",
                 component: CartManagement,
                 meta: { title: "購物車管理", requiresAuth: true },
             },
+            */
+            /* 已注释模拟支付
             {
                 path: "shop/checkout",
                 name: "PaymentSimulation",
                 component: PaymentSimulation,
                 meta: { title: "模擬支付", requiresAuth: true },
             },
+            */
 
             // 論壇
             {
@@ -218,7 +224,10 @@ router.beforeEach((to, from, next) => {
         const userRole = localStorage.getItem("userRole");
 
         if (!authToken) {
-            return next("/member/login");
+            return next({
+                path: "/member/login",
+                query: { redirect: to.fullPath },
+            });
         }
 
         if (to.meta.requiresAdmin && userRole !== "admin") {
