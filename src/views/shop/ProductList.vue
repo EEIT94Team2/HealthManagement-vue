@@ -8,32 +8,6 @@
             <el-input v-model="searchKeyword" placeholder="輸入商品名稱搜索" class="search-input">
             </el-input>
 
-            <div class="price-filter">
-                <span>價格範圍:</span>
-                <el-input-number
-                    v-model="minPrice"
-                    :min="0"
-                    :step="10"
-                    size="small"
-                    placeholder="最低價"
-                />
-                <span>至</span>
-                <el-input-number
-                    v-model="maxPrice"
-                    :min="0"
-                    :step="10"
-                    size="small"
-                    placeholder="最高價"
-                />
-                <el-tooltip
-                    content="請同時填寫最低價和最高價進行價格範圍搜索"
-                    placement="top"
-                    effect="light"
-                >
-                    <el-icon class="info-icon"><InfoFilled /></el-icon>
-                </el-tooltip>
-            </div>
-
             <el-button type="primary" @click="searchProducts">
                 <el-icon><Search /></el-icon> 搜索
             </el-button>
@@ -45,7 +19,7 @@
         </div>
 
         <!-- 使用表格佈局來顯示商品 -->
-        <el-table :data="products" style="width: 100%" border v-if="products.length > 0">
+        <el-table :data="paginatedProducts" style="width: 100%" border v-if="products.length > 0">
             <el-table-column prop="id" label="商品ID" width="80" />
             <el-table-column prop="name" label="商品名稱" min-width="150" />
             <el-table-column prop="description" label="描述" min-width="250" />
@@ -57,22 +31,31 @@
             <el-table-column prop="stockQuantity" label="庫存" width="80" />
             <el-table-column label="操作" width="180">
                 <template #default="scope">
-                    <el-button
-                        v-if="isAdmin"
-                        type="warning"
-                        size="small"
-                        @click="editProduct(scope.row)"
-                    >
-                        編輯
-                    </el-button>
-                    <el-button
-                        v-if="isAdmin"
-                        type="danger"
-                        size="small"
-                        @click="deleteProduct(scope.row.id)"
-                    >
-                        刪除
-                    </el-button>
+                    <div class="button-container">
+                        <el-tooltip content="編輯商品" placement="top">
+                            <el-button
+                                v-if="isAdmin"
+                                type="primary"
+                                @click="editProduct(scope.row)"
+                                class="action-button"
+                            >
+                                <el-icon><Tools /></el-icon>
+                                編輯
+                            </el-button>
+                        </el-tooltip>
+
+                        <el-tooltip content="刪除商品" placement="top">
+                            <el-button
+                                v-if="isAdmin"
+                                type="danger"
+                                @click="deleteProduct(scope.row.id)"
+                                class="action-button"
+                            >
+                                <el-icon><CircleClose /></el-icon>
+                                刪除
+                            </el-button>
+                        </el-tooltip>
+                    </div>
                 </template>
             </el-table-column>
         </el-table>
@@ -97,7 +80,12 @@
                     <el-input v-model="productForm.imageUrl" placeholder="請輸入圖片URL地址" />
                 </el-form-item>
                 <el-form-item label="價格" required>
-                    <el-input-number v-model="productForm.price" :min="0" :step="0.01" />
+                    <el-input-number
+                        v-model="productForm.price"
+                        :min="0"
+                        :step="1"
+                        :precision="0"
+                    />
                 </el-form-item>
                 <el-form-item label="庫存數量" required>
                     <el-input-number v-model="productForm.stockQuantity" :min="0" :step="1" />
@@ -125,20 +113,33 @@
         <!-- 提示菜單順序信息 -->
         <el-alert
             v-if="isAdmin"
-            title="菜單使用順序: 商品管理 → 購物車管理 → 訂單管理 → 模擬支付"
+            title="我是一個提示訊息"
             type="info"
-            description="請按照此順序操作系統，以確保流程正確"
+            description="我是一個提示訊息，以後這裡可以放一些說明文字。"
             :closable="false"
             show-icon
             style="margin-top: 20px"
         />
+
+        <!-- 添加分頁組件 -->
+        <div class="pagination-container">
+            <el-pagination
+                v-model:current-page="currentPage"
+                v-model:page-size="pageSize"
+                :page-sizes="[10, 20, 50, 100]"
+                :total="products.length"
+                layout="total, sizes, prev, pager, next, jumper"
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+            />
+        </div>
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
-import { Search, Plus, InfoFilled } from "@element-plus/icons-vue";
+import { Search, Plus, Tools, CircleClose } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import axios from "axios";
 
@@ -147,8 +148,6 @@ const pageTitle = ref("商品管理");
 const pageDescription = ref("管理商品資訊");
 const products = ref([]);
 const searchKeyword = ref("");
-const minPrice = ref(null);
-const maxPrice = ref(null);
 const showAddProductDialog = ref(false);
 const showDeleteConfirmDialog = ref(false);
 const productToDeleteId = ref(null);
@@ -165,6 +164,18 @@ const productForm = ref({
     stockQuantity: 0,
 });
 
+// 分頁相關的響應式變量
+const currentPage = ref(1);
+const pageSize = ref(10);
+const total = ref(0);
+
+// 添加前端分頁計算
+const paginatedProducts = computed(() => {
+    const startIndex = (currentPage.value - 1) * pageSize.value;
+    const endIndex = startIndex + pageSize.value;
+    return products.value.slice(startIndex, endIndex);
+});
+
 // 重置商品表單
 const resetProductForm = () => {
     productForm.value = {
@@ -179,7 +190,7 @@ const resetProductForm = () => {
 };
 
 onMounted(() => {
-    fetchAllProducts();
+    fetchProducts();
 });
 
 // 獲取所有商品
@@ -220,78 +231,69 @@ const fetchAllProducts = async () => {
     }
 };
 
-// 整合搜索功能（名稱+價格範圍）
+// 修改獲取商品的方法
+const fetchProducts = async () => {
+    try {
+        const response = await axios.get("/api/products");
+        console.log("獲取商品響應:", response.data);
+
+        if (response.data && (response.data.success || response.data.status === "success")) {
+            const data = response.data.data || response.data;
+            products.value = Array.isArray(data) ? data : [];
+            total.value = products.value.length;
+
+            // 重置到第一頁
+            if (currentPage.value > 1 && paginatedProducts.value.length === 0) {
+                currentPage.value = 1;
+            }
+        } else {
+            throw new Error(response.data?.message || "獲取商品列表失敗");
+        }
+    } catch (error) {
+        console.error("獲取商品列表失敗:", error);
+        ElMessage.error(error.response?.data?.message || "獲取商品列表失敗，請稍後重試");
+        products.value = [];
+        total.value = 0;
+    }
+};
+
+// 搜索商品
 const searchProducts = async () => {
     try {
-        console.log(
-            `開始搜索商品，關鍵字: ${searchKeyword.value}, 價格範圍: ${
-                minPrice.value || "無限制"
-            } - ${maxPrice.value || "無限制"}`
-        );
-
-        // 檢查價格範圍輸入
-        if (
-            (minPrice.value !== null && maxPrice.value === null) ||
-            (minPrice.value === null && maxPrice.value !== null)
-        ) {
-            ElMessage.warning("請同時填寫最低價和最高價進行價格範圍搜索");
-            return;
-        }
-
         let url = "/api/products";
-        let response;
 
-        // 使用價格範圍搜索
-        if (minPrice.value !== null && maxPrice.value !== null) {
-            url = `/api/products/search?minPrice=${minPrice.value}&maxPrice=${maxPrice.value}`;
-            console.log("價格搜索URL:", url);
-            response = await axios.get(url);
-        }
-        // 使用關鍵字搜索
-        else if (searchKeyword.value.trim()) {
+        if (searchKeyword.value && searchKeyword.value.trim()) {
             url = `/api/products/search?keyword=${encodeURIComponent(searchKeyword.value.trim())}`;
-            console.log("關鍵字搜索URL:", url);
-            response = await axios.get(url);
-        }
-        // 獲取所有商品
-        else {
-            console.log("獲取所有商品URL:", url);
-            response = await axios.get(url);
         }
 
-        console.log("搜索結果響應:", response);
+        const response = await axios.get(url);
+        console.log("搜索結果響應:", response.data);
 
-        // 兼容多種響應格式
-        if (response.data) {
-            if (response.data.success && response.data.data) {
-                // {success: true, data: [...]}
-                products.value = response.data.data;
-            } else if (response.data.status === "success" && response.data.data) {
-                // {status: "success", data: [...]}
-                products.value = response.data.data;
-            } else if (Array.isArray(response.data)) {
-                // 直接返回數組
-                products.value = response.data;
-            } else {
-                console.error("搜索商品失敗: 響應格式不符合預期");
-                console.log("完整響應:", response.data);
-                products.value = [];
-                ElMessage.error("搜索商品失敗，API響應格式不符");
-            }
-            console.log(`搜索成功，找到${products.value.length}個商品`);
+        if (response.data && (response.data.success || response.data.status === "success")) {
+            const data = response.data.data || response.data;
+            products.value = Array.isArray(data) ? data : [];
+            total.value = products.value.length;
+            currentPage.value = 1; // 重置到第一頁
         } else {
-            products.value = [];
-            ElMessage.error("搜索商品失敗，沒有收到響應數據");
+            throw new Error(response.data?.message || "搜索商品失敗");
         }
     } catch (error) {
         console.error("搜索商品失敗:", error);
-        if (error.response) {
-            console.error("錯誤狀態:", error.response.status);
-            console.error("錯誤數據:", error.response.data);
-        }
+        ElMessage.error(error.response?.data?.message || "搜索商品失敗，請稍後重試");
         products.value = [];
-        ElMessage.error("搜索商品失敗，請稍後重試");
+        total.value = 0;
     }
+};
+
+// 處理頁碼改變
+const handleCurrentChange = (val) => {
+    currentPage.value = val;
+};
+
+// 處理每頁顯示數量改變
+const handleSizeChange = (val) => {
+    pageSize.value = val;
+    currentPage.value = 1;
 };
 
 // 編輯商品
@@ -397,5 +399,26 @@ h1 {
     color: #909399;
     cursor: pointer;
     margin-left: 5px;
+}
+.pagination-container {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+}
+.button-container {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.action-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+}
+
+.action-button :deep(.el-icon) {
+    font-size: 16px;
 }
 </style>
