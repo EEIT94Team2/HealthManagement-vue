@@ -9,9 +9,13 @@ import MemberLoginView from "@/views/member/MemberLoginView.vue";
 import MemberRegisterView from "@/views/member/MemberRegisterView.vue";
 import MemberProfileView from "@/views/member/MemberProfileView.vue";
 
-// 購物車
-import CartOrdersView from "@/views/shop/CartOrdersView.vue";
-import CartAddProductView from "@/views/shop/CartAddProductView.vue";
+// 商城管理
+import OrderList from "@/views/shop/OrderList.vue";
+import OrderDetail from "@/views/shop/OrderDetail.vue";
+import CartManagement from "@/views/shop/CartManagement.vue";
+import ProductList from "@/views/shop/ProductList.vue";
+import ProductDetail from "@/views/shop/ProductDetail.vue";
+import PaymentSimulation from "@/views/shop/PaymentSimulation.vue";
 
 // 論壇
 import ForumHomeView from "@/views/social/ForumHomeView.vue";
@@ -75,15 +79,43 @@ const routes = [
       },
       {
         path: "shop/orders",
-        name: "CartOrders",
-        component: CartOrdersView,
-        meta: { title: "訂單管理", requiresAuth: true }, // 需要登入
+        name: "OrderList",
+        component: OrderList,
+        meta: { title: "訂單管理", requiresAuth: true },
       },
       {
-        path: "shop/add-product",
-        name: "CartAddProduct",
-        component: CartAddProductView,
-        meta: { title: "新增商品", requiresAuth: true }, // 需要登入
+        path: "shop/orders/:id",
+        name: "OrderDetail",
+        component: OrderDetail,
+        meta: { title: "訂單詳情", hidden: true, requiresAuth: true },
+      },
+      {
+        path: "shop/products",
+        name: "ProductList",
+        component: ProductList,
+        meta: { title: "商品管理", requiresAuth: true },
+      },
+      {
+        path: "shop/product-list",
+        redirect: "/shop/products",
+      },
+      {
+        path: "shop/products/:id",
+        name: "ProductDetail",
+        component: ProductDetail,
+        meta: { title: "商品詳情", hidden: true, requiresAuth: true },
+      },
+      {
+        path: "shop/cart",
+        name: "CartManagement",
+        component: CartManagement,
+        meta: { title: "購物車管理", requiresAuth: true },
+      },
+      {
+        path: "shop/checkout",
+        name: "PaymentSimulation",
+        component: PaymentSimulation,
+        meta: { title: "模擬支付", requiresAuth: true },
       },
       {
         path: "social/home",

@@ -44,13 +44,19 @@
       <el-sub-menu index="shop">
         <template #title>
           <el-icon><ShoppingCart /></el-icon>
-          <span>購物車</span>
+          <span>商城管理</span>
         </template>
         <el-menu-item index="/shop/orders">
           <span>訂單管理</span>
         </el-menu-item>
-        <el-menu-item index="/shop/add-product">
-          <span>新增商品</span>
+        <el-menu-item index="/shop/cart">
+          <span>購物車管理</span>
+        </el-menu-item>
+        <el-menu-item index="/shop/products">
+          <span>商品管理</span>
+        </el-menu-item>
+        <el-menu-item index="/shop/payment-simulation">
+          <span>模擬支付</span>
         </el-menu-item>
       </el-sub-menu>
 
@@ -111,6 +117,7 @@ import logoImage from "@/assets/images/logo.png"; // 假設你的 logo 在這裡
 const router = useRouter();
 const route = useRoute();
 const isCollapse = ref(false);
+const emit = defineEmits(["update-title"]); // 定義發射的事件
 const logo = ref(logoImage);
 const title = ref("你今天健了嗎");
 
@@ -135,8 +142,14 @@ const handleSelect = (index, indexPath) => {
     case "/shop/orders":
       title = "訂單管理";
       break;
-    case "/shop/add-product":
-      title = "新增商品";
+    case "/shop/cart":
+      title = "購物車管理";
+      break;
+    case "/shop/products":
+      title = "商品管理";
+      break;
+    case "/shop/payment-simulation":
+      title = "模擬支付";
       break;
     case "/fitness/admin/workouts":
       title = "運動紀錄管理";
@@ -147,12 +160,6 @@ const handleSelect = (index, indexPath) => {
     case "/fitness/admin/body":
       title = "身體數據管理";
       break;
-    case "/fitness/admin/goals-progress":
-      title = "目標與進度";
-      break;
-    case "/fitness/admin/reports":
-      title = "報告與數據分析";
-      break;
     case "/social/home":
       title = "論壇首頁";
       break;
@@ -161,14 +168,6 @@ const handleSelect = (index, indexPath) => {
       break;
     case "/social/create":
       title = "發表文章";
-      break;
-    case "member": // 父選單，可以根據需求處理
-    case "courses":
-    case "shop":
-    case "fitness":
-    case "social":
-      // 可以選擇不更新標題，或者根據父選單的文字更新
-      title = indexPath.slice(-1)[0]; // 使用最後一個路徑片段作為標題
       break;
     default:
       title = "後端管理系統";

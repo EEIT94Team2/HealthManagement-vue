@@ -9,7 +9,9 @@
         <el-input type="password" v-model="loginForm.password" />
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="login">登入</el-button>
+        <el-button type="primary" @click="login" :loading="isLoading"
+          >登入</el-button
+        >
       </el-form-item>
       <p v-if="loginError" style="color: red">{{ loginError }}</p>
     </el-form>
@@ -22,55 +24,38 @@ import { ref } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
+import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
+const authStore = useAuthStore();
+
 const loginForm = ref({
   email: "",
   password: "",
 });
 const loginError = ref("");
+const isLoading = ref(false);
 
 const login = async () => {
   loginError.value = "";
+  isLoading.value = true;
+
   try {
-    // 連接後端登入API
-    // 修改 API 端點 URL 以匹配後端 @RequestMapping("/api/auth")
-    const response = await axios.post("/api/auth/login", loginForm.value);
+    // 使用auth store進行登入
+    const result = await authStore.login(loginForm.value);
 
-    // 確保後端返回的格式符合預期
-    if (response.data && response.data.success) {
-      const { token, role } = response.data.data;
-
-      // 將token存儲到localStorage
-      localStorage.setItem("authToken", token);
-      localStorage.setItem("userRole", role);
-
-      // 將token添加到axios的默認請求頭中
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
+    if (result.success) {
       ElMessage.success("登入成功！");
       // 登入成功後導向到首頁
-      router.push("/dashboard"); // 確保你的前端路由中有 /dashboard
+      router.push("/dashboard");
     } else {
-      loginError.value = response.data.message || "登入失敗，請稍後再試";
+      loginError.value = result.message || "登入失敗，請稍後再試";
     }
   } catch (error) {
     console.error("登入失敗", error);
-    if (error.response && error.response.data) {
-      // 嘗試顯示後端返回的具體錯誤訊息
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.message
-      ) {
-        loginError.value = error.response.data.message;
-      } else {
-        loginError.value =
-          error.response.data.message || "電子郵件或密碼錯誤，請重新輸入。";
-      }
-    } else {
-      loginError.value = "無法連接到伺服器，請檢查網絡連接。";
-    }
+    loginError.value = "無法連接到伺服器，請檢查網絡連接。";
+  } finally {
+    isLoading.value = false;
   }
 };
 </script>
