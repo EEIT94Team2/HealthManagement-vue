@@ -59,10 +59,8 @@
 import { ref, onMounted } from "vue";
 import axios from "axios";
 import { ElMessage } from "element-plus";
-// import * as echarts from 'echarts'; // 如果你使用 ECharts
 
 const dashboardStats = ref({
-  // totalUsers: 0, // 移除 totalUsers 屬性
   totalWorkouts: 0,
   totalWorkoutMinutes: 0,
   totalCaloriesBurned: 0,
@@ -76,9 +74,11 @@ onMounted(() => {
 const fetchDashboardStats = async () => {
   try {
     const token = localStorage.getItem("authToken");
+    console.log("從 localStorage 獲取的 token:", token); // 檢查 token 值
+
     const response = await axios.get("/api/fitness/dashboard/stats", {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token}`, // 直接在請求中設置 Authorization header
       },
     });
     dashboardStats.value = response.data;

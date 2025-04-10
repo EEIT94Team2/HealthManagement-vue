@@ -23,9 +23,6 @@
           <el-icon><user /></el-icon>
           <span>會員中心</span>
         </template>
-        <el-menu-item index="/member/login">
-          <span>會員登入</span>
-        </el-menu-item>
         <el-menu-item index="/member/register">
           <span>會員註冊</span>
         </el-menu-item>
@@ -71,9 +68,9 @@
         <el-menu-item index="/fitness/admin/body">
           <span>身體數據管理</span>
         </el-menu-item>
-        <el-menu-item index="/fitness/admin/goals">
+        <!-- <el-menu-item index="/fitness/admin/goals">
           <span>目標與進度</span>
-        </el-menu-item>
+        </el-menu-item> -->
         <el-menu-item index="/fitness/admin/reports">
           <span>報告與數據分析</span>
         </el-menu-item>

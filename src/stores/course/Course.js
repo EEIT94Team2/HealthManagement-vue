@@ -12,7 +12,7 @@ export const useCourseStore = defineStore('courseStore', {
   actions: {
     async fetchCourses() {
       try {
-        const res = await axios.get('http://localhost:8080/courses')
+        const res = await axios.get('http://localhost:8080/api/courses')
         this.courses = res.data
       } catch (err) {
         console.error('取得課程失敗', err)
@@ -21,7 +21,7 @@ export const useCourseStore = defineStore('courseStore', {
     async searchByCourseName() {
       if (!this.searchName) return this.fetchCourses()
       try {
-        const res = await axios.get('http://localhost:8080/courses/course_search', {
+        const res = await axios.get('http://localhost:8080/api/courses/course_search', {
           params: { name: this.searchName }
         })
         this.courses = res.data
@@ -32,7 +32,7 @@ export const useCourseStore = defineStore('courseStore', {
     async searchByCoachName() {
       if (!this.searchCoachName) return this.fetchCourses()
       try {
-        const res = await axios.get('http://localhost:8080/courses/coach_search', {
+        const res = await axios.get('http://localhost:8080/api/courses/coach_search', {
           params: { coachName: this.searchCoachName }
         })
         this.courses = res.data
@@ -43,7 +43,7 @@ export const useCourseStore = defineStore('courseStore', {
     async searchByCoachId() {
       if (!this.searchCoachId) return this.fetchCourses()
       try {
-        const res = await axios.get('http://localhost:8080/courses/coach', {
+        const res = await axios.get('http://localhost:8080/api/courses/coach', {
           params: { coachId: this.searchCoachId }
         })
         this.courses = res.data

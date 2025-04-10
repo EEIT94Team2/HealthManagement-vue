@@ -13,10 +13,18 @@
         <el-input v-model="searchForm.name" placeholder="輸入姓名"></el-input>
       </el-form-item>
       <el-form-item label="運動類型">
-        <el-input
+        <el-select
           v-model="searchForm.type"
-          placeholder="輸入運動類型"
-        ></el-input>
+          placeholder="請選擇運動類型"
+          style="width: 200px"
+        >
+          <el-option
+            v-for="type in exerciseTypes"
+            :key="type"
+            :label="type"
+            :value="type"
+          ></el-option>
+        </el-select>
       </el-form-item>
       <el-form-item label="日期範圍">
         <el-date-picker
@@ -145,7 +153,7 @@ const pageSize = ref(10);
 const searchForm = reactive({
   userId: "",
   name: "",
-  type: "",
+  type: "", // 修改為使用 select 的 value
   dateRange: null,
 });
 
@@ -199,19 +207,14 @@ const fetchWorkoutRecords = async () => {
   const params = {
     page: currentPage.value - 1,
     size: pageSize.value,
-    exerciseType: searchForm.type || undefined,
+    userId: searchForm.userId || undefined,
+    userName: searchForm.name || undefined,
+    exerciseType: searchForm.type || undefined, // 直接使用 select 的 value
     startDate: searchForm.dateRange ? searchForm.dateRange[0] : undefined,
     endDate: searchForm.dateRange ? searchForm.dateRange[1] : undefined,
   };
 
-  let apiUrl = "/api/tracking/exercise-records";
-  if (searchForm.userId && searchForm.name) {
-    apiUrl = `/api/tracking/exercise-records/user/${searchForm.userId}/by-name?userName=${searchForm.name}`;
-  } else if (searchForm.userId) {
-    apiUrl = `/api/tracking/exercise-records/user/${searchForm.userId}`;
-  } else if (searchForm.name) {
-    apiUrl = `/api/tracking/exercise-records/by-name?userName=${searchForm.name}`;
-  }
+  const apiUrl = "/api/tracking/exercise-records";
 
   try {
     const response = await axios.get(apiUrl, { params, ...getAuthHeaders() });
@@ -246,7 +249,7 @@ const handleCurrentChange = (page) => {
 const resetSearchForm = () => {
   searchForm.userId = "";
   searchForm.name = "";
-  searchForm.type = "";
+  searchForm.type = ""; // 重置 select 的 value
   searchForm.dateRange = null;
   currentPage.value = 1;
   fetchWorkoutRecords();
