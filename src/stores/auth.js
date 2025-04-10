@@ -1,57 +1,97 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
-import axios from "@/api/config/axios";
+import axios from "axios";
+import router from "../router";
 
-export const useAuthStore = defineStore("auth", () => {
-    const token = ref(localStorage.getItem("token") || "");
-    const user = ref(JSON.parse(localStorage.getItem("user") || "{}"));
-
-    function setToken(newToken) {
-        token.value = newToken;
-        localStorage.setItem("token", newToken);
-    }
-
-    function setUser(newUser) {
-        user.value = newUser;
-        localStorage.setItem("user", JSON.stringify(newUser));
-    }
-
-    async function login(credentials) {
+export const useAuthStore = defineStore("auth", {
+    state: () => {
+        // 安全解析用戶信息
+        const userInfoStr = localStorage.getItem("userInfo");
+        let userInfo = null;
         try {
-            const response = await axios.post("/auth/login", credentials);
-            setToken(response.token);
-            setUser(response.user);
-            return response;
-        } catch (error) {
-            console.error("Login error:", error);
-            throw error;
+            if (userInfoStr) {
+                userInfo = JSON.parse(userInfoStr);
+            }
+        } catch (e) {
+            console.error("解析用戶信息失敗", e);
+            // 如果解析失敗，清除可能損壞的數據
+            localStorage.removeItem("userInfo");
         }
-    }
 
-    async function register(userData) {
-        try {
-            const response = await axios.post("/auth/register", userData);
-            setToken(response.token);
-            setUser(response.user);
-            return response;
-        } catch (error) {
-            console.error("Register error:", error);
-            throw error;
-        }
-    }
+        return {
+            token: localStorage.getItem("authToken") || null,
+            userRole: localStorage.getItem("userRole") || null,
+            userInfo: userInfo,
+        };
+    },
 
-    function logout() {
-        setToken("");
-        setUser({});
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-    }
+    getters: {
+        isAuthenticated: (state) => !!state.token,
+        getToken: (state) => state.token,
+        getUserRole: (state) => state.userRole,
+        getUserInfo: (state) => state.userInfo,
+    },
 
-    return {
-        token,
-        user,
-        login,
-        register,
-        logout,
-    };
+    actions: {
+        async login(credentials) {
+            try {
+                const response = await axios.post("/api/auth/login", credentials);
+
+                if (response.data && response.data.success) {
+                    const { token, role, user } = response.data.data;
+
+                    this.token = token;
+                    this.userRole = role;
+                    this.userInfo = user;
+
+                    localStorage.setItem("authToken", token);
+                    localStorage.setItem("userRole", role);
+
+                    if (user) {
+                        localStorage.setItem("userInfo", JSON.stringify(user));
+                    }
+
+                    // 設置axios默認頭部帶上token
+                    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+                    return { success: true };
+                }
+
+                return {
+                    success: false,
+                    message: response.data.message || "登入失敗",
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    message: error.response?.data?.message || "登入失敗，請檢查網絡連接",
+                };
+            }
+        },
+
+        logout() {
+            // 清除state
+            this.token = null;
+            this.userRole = null;
+            this.userInfo = null;
+
+            // 清除localStorage
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("userRole");
+            localStorage.removeItem("userInfo");
+
+            // 清除axios頭部token
+            delete axios.defaults.headers.common["Authorization"];
+
+            // 重定向到登入頁
+            router.push("/member/login");
+        },
+
+        autoLogin() {
+            const token = localStorage.getItem("authToken");
+            if (token) {
+                // 自動設置axios頭部帶上token
+                axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+            }
+        },
+    },
 });
