@@ -69,13 +69,22 @@
                     <el-icon><Histogram /></el-icon>
                     <span>追蹤成效</span>
                 </template>
-                <el-menu-item index="/fitness/overview">
+                <el-menu-item index="/fitness/admin/workouts" v-if="userRole === 'admin'">
+                    <span>運動紀錄管理</span>
+                </el-menu-item>
+                <el-menu-item index="/fitness/admin/body" v-if="userRole === 'admin'">
+                    <span>身體數據管理</span>
+                </el-menu-item>
+                <el-menu-item index="/fitness/admin/reports" v-if="userRole === 'admin'">
+                    <span>報告與數據分析</span>
+                </el-menu-item>
+                <el-menu-item index="/fitness/overview" v-else>
                     <span>成效總覽</span>
                 </el-menu-item>
-                <el-menu-item index="/fitness/reports">
+                <el-menu-item index="/fitness/reports" v-else>
                     <span>報表分析</span>
                 </el-menu-item>
-                <el-menu-item index="/fitness/goals">
+                <el-menu-item index="/fitness/goals" v-else>
                     <span>目標設定</span>
                 </el-menu-item>
             </el-sub-menu>
@@ -173,6 +182,15 @@ const handleSelect = (index, indexPath) => {
             break;
         case "/shop/products":
             title = "商品管理";
+            break;
+        case "/fitness/admin/workouts":
+            title = "運動紀錄管理";
+            break;
+        case "/fitness/admin/body":
+            title = "身體數據管理";
+            break;
+        case "/fitness/admin/reports":
+            title = "報告與數據分析";
             break;
         case "/fitness/overview":
             title = "成效總覽";

@@ -24,12 +24,7 @@ import ForumHomeView from "@/views/social/ForumHomeView.vue";
 import ForumPostsView from "@/views/social/ForumPostsView.vue";
 import ForumCreateView from "@/views/social/ForumCreateView.vue";
 
-// 追蹤成效（一般會員）
-import TrackingOverviewView from "@/views/fitness/TrackingOverviewView.vue";
-import TrackingReportsView from "@/views/fitness/TrackingReportsView.vue";
-import TrackingGoalsView from "@/views/fitness/TrackingGoalsView.vue";
-
-// 追蹤成效（管理員）
+// 追蹤成效
 import AdminDietRecords from "@/views/fitness/backend/DietRecords.vue";
 import AdminExerciseRecords from "@/views/fitness/backend/ExerciseRecords.vue";
 import AdminBodyData from "@/views/fitness/backend/BodyData.vue";
@@ -158,56 +153,56 @@ const routes = [
                 meta: { title: "發表文章", requiresAuth: true },
             },
 
-            // 追蹤成效（會員）
-            {
-                path: "fitness/overview",
-                name: "TrackingOverview",
-                component: TrackingOverviewView,
-                meta: { title: "成效總覽", requiresAuth: true },
-            },
-            {
-                path: "fitness/reports",
-                name: "TrackingReports",
-                component: TrackingReportsView,
-                meta: { title: "報表分析", requiresAuth: true },
-            },
-            {
-                path: "fitness/goals",
-                name: "TrackingGoals",
-                component: TrackingGoalsView,
-                meta: { title: "目標設定", requiresAuth: true },
-            },
-
-            // 追蹤成效（管理員）
             {
                 path: "fitness/admin/workouts",
                 name: "AdminWorkouts",
                 component: AdminExerciseRecords,
-                meta: { title: "運動紀錄管理", requiresAuth: true, isAdmin: true },
+                meta: {
+                    title: "運動紀錄管理",
+                    requiresAuth: true,
+                    isAdmin: true,
+                },
             },
             {
                 path: "fitness/admin/diet",
                 name: "AdminDiet",
                 component: AdminDietRecords,
-                meta: { title: "飲食紀錄管理", requiresAuth: true, isAdmin: true },
+                meta: {
+                    title: "飲食紀錄管理",
+                    requiresAuth: true,
+                    isAdmin: true,
+                },
             },
             {
                 path: "fitness/admin/body",
                 name: "AdminBodyData",
                 component: AdminBodyData,
-                meta: { title: "身體數據管理", requiresAuth: true, isAdmin: true },
+                meta: {
+                    title: "身體數據管理",
+                    icon: "Scale",
+                    requiresAuth: true,
+                    isAdmin: true,
+                },
             },
             {
                 path: "fitness/admin/goals",
                 name: "AdminGoalsProgress",
                 component: AdminGoalsProgress,
-                meta: { title: "目標與進度", requiresAuth: true, isAdmin: true },
+                meta: {
+                    title: "目標與進度",
+                    requiresAuth: true,
+                    isAdmin: true,
+                },
             },
             {
                 path: "fitness/admin/reports",
                 name: "ReportsAnalysis",
                 component: ReportsAnalysis,
-                meta: { title: "報告與數據分析", requiresAuth: true, isAdmin: true },
+                meta: {
+                    title: "報告與數據分析",
+                    requiresAuth: true,
+                    isAdmin: true,
+                },
             },
         ],
     },
