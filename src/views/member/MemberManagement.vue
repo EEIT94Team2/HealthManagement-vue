@@ -1,10 +1,14 @@
+@ -0,0 +1,323 @@
 <template>
     <div class="member-management">
         <el-card class="management-container">
             <template #header>
                 <div class="management-header">
-                    <h2>會員總管</h2>
-                    <el-button type="primary" @click="showAddDialog">新增會員</el-button>
+                    <div class="title"></div>
+                    <div class="search-and-add">
+                        
+                        <el-button type="primary" @click="showAddDialog">新增會員</el-button>
+                    </div>
                 </div>
             </template>
 
@@ -121,6 +125,7 @@ const dialogVisible = ref(false);
 const isEdit = ref(false);
 const formRef = ref(null);
 const isAdmin = ref(true); // 假設當前用戶是管理員
+const searchText = ref("");
 
 const form = ref({
     name: "",
@@ -304,6 +309,21 @@ onMounted(fetchUsers);
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.search-and-add {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.search-input {
+    width: 200px;
 }
 
 .bio-content {
