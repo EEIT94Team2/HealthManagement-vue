@@ -10,6 +10,8 @@ import "@/assets/styles/index.scss";
 import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap";
+// 全局引入Bootstrap Icons
+import "bootstrap-icons/font/bootstrap-icons.css";
 
 // 配置axios默認設置
 axios.defaults.baseURL = "http://localhost:8080"; // 後端API基礎URL

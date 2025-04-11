@@ -12,12 +12,14 @@ import MemberProfileView from "@/views/member/MemberProfileView.vue";
 import MemberManagement from "@/views/member/MemberManagement.vue";
 
 // 商城管理
-// import OrderList from "@/views/shop/OrderList.vue";
-// import OrderDetail from "@/views/shop/OrderDetail.vue";
-// import CartManagement from "@/views/shop/CartManagement.vue";
+import OrderList from "@/views/shop/OrderList.vue";
+import OrderDetail from "@/views/shop/OrderDetail.vue";
+import CartManagement from "@/views/shop/CartManagement.vue";
 import ProductList from "@/views/shop/ProductList.vue";
 import ProductDetail from "@/views/shop/ProductDetail.vue";
-// import PaymentSimulation from "@/views/shop/PaymentSimulation.vue";
+import ProductManagement from "@/views/shop/ProductManagement.vue";
+import ProductAdmin from "@/views/shop/ProductAdmin.vue";
+import PaymentSimulation from "@/views/shop/PaymentSimulation.vue";
 
 // 論壇
 import ForumHomeView from "@/views/social/ForumHomeView.vue";
@@ -30,6 +32,9 @@ import AdminExerciseRecords from "@/views/fitness/backend/ExerciseRecords.vue";
 import AdminBodyData from "@/views/fitness/backend/BodyData.vue";
 import AdminGoalsProgress from "@/views/fitness/backend/GoalsProgress.vue";
 import ReportsAnalysis from "@/views/fitness/backend/ReportsAnalysis.vue";
+
+// 錯誤頁面
+import Forbidden403 from "@/views/403.vue";
 
 const routes = [
     {
@@ -87,9 +92,7 @@ const routes = [
                 component: MemberManagement,
                 meta: { title: "會員總管", requiresAuth: true, requiresAdmin: true },
             },
-
             // 商城管理
-            /* 已注释订单管理
             {
                 path: "shop/orders",
                 name: "OrderList",
@@ -100,9 +103,9 @@ const routes = [
                 path: "shop/orders/:id",
                 name: "OrderDetail",
                 component: OrderDetail,
-                meta: { title: "訂單詳情", hidden: true, requiresAuth: true },
+                meta: { title: "訂單詳情", requiresAuth: true },
             },
-            */
+
             {
                 path: "shop/products",
                 name: "ProductList",
@@ -114,24 +117,33 @@ const routes = [
                 path: "shop/products/:id",
                 name: "ProductDetail",
                 component: ProductDetail,
-                meta: { title: "商品詳情", hidden: true, requiresAuth: true },
+                meta: { title: "商品詳情", requiresAuth: true },
             },
-            /* 已注释购物车管理
+            {
+                path: "shop/product-management",
+                name: "ProductManagement",
+                component: ProductManagement,
+                meta: { title: "商品管理", requiresAuth: true, requiresAdmin: true },
+            },
+            {
+                path: "shop/product-admin",
+                name: "ProductAdmin",
+                component: ProductAdmin,
+                meta: { title: "商品管理後台", requiresAuth: true, requiresAdmin: true },
+            },
             {
                 path: "shop/cart",
                 name: "CartManagement",
                 component: CartManagement,
                 meta: { title: "購物車管理", requiresAuth: true },
             },
-            */
-            /* 已注释模拟支付
+
             {
                 path: "shop/checkout",
                 name: "PaymentSimulation",
                 component: PaymentSimulation,
                 meta: { title: "模擬支付", requiresAuth: true },
             },
-            */
 
             // 論壇
             {
@@ -204,7 +216,22 @@ const routes = [
                     isAdmin: true,
                 },
             },
+
+            // 錯誤頁面
+            {
+                path: "error/403",
+                name: "Forbidden",
+                component: Forbidden403,
+                meta: { title: "訪問被拒絕" },
+            },
         ],
+    },
+    // 全局錯誤頁面，不使用布局
+    {
+        path: "/error/403",
+        name: "GlobalForbidden",
+        component: Forbidden403,
+        meta: { title: "訪問被拒絕" },
     },
 ];
 
@@ -227,12 +254,24 @@ router.beforeEach((to, from, next) => {
 
         if (to.meta.requiresAdmin && userRole !== "admin") {
             ElMessage.error("您沒有訪問此頁面的權限");
-            return next("/dashboard");
+            return next({
+                path: "/error/403",
+                query: { 
+                    message: "您沒有管理員權限，無法訪問此頁面", 
+                    code: "ERR_BAD_REQUEST" 
+                }
+            });
         }
 
         if (to.meta.isAdmin && userRole !== "admin") {
             ElMessage.error("您沒有管理員權限");
-            return next("/dashboard");
+            return next({
+                path: "/error/403",
+                query: { 
+                    message: "您沒有管理員權限，無法訪問此頁面", 
+                    code: "ERR_BAD_REQUEST" 
+                }
+            });
         }
 
         return next();
