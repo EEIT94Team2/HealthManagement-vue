@@ -194,7 +194,7 @@ const formatDate = (dateString) => {
 
 // 获取订单列表
 const fetchOrders = async () => {
-  if (!authStore.isLoggedIn) {
+  if (!authStore.isAuthenticated) {
     ElMessage.warning('請先登入');
     router.push('/member/login');
     return;
@@ -259,6 +259,11 @@ const handleCurrentChange = (val) => {
 };
 
 onMounted(() => {
+  if (!authStore.isAuthenticated) {
+    ElMessage.warning('請先登入');
+    router.push('/member/login');
+    return;
+  }
   fetchOrders();
 });
 </script>

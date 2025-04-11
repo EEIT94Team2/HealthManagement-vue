@@ -30,34 +30,29 @@ export const getProductsByPriceRange = (minPrice, maxPrice) => {
 };
 
 // 购物车相关API
-export const getCartItems = (userId) => {
-  const params = userId ? { userId } : {};
-  return axios.get("/api/cart/items", { params });
+export const getCartItems = () => {
+  return axios.get("/api/cart/items");
 };
 
-export const addToCart = (product, userId) => {
-  const params = userId ? { userId } : {};
-  return axios.post("/api/cart/items", product, { params });
+export const addToCart = (product) => {
+  return axios.post("/api/cart/items", product);
 };
 
-export const updateCartItemQuantity = (cartItemId, quantity, userId) => {
-  const params = { quantity, ...(userId ? { userId } : {}) };
+export const updateCartItemQuantity = (cartItemId, quantity) => {
+  const params = { quantity };
   return axios.put(`/api/cart/items/${cartItemId}/quantity`, null, { params });
 };
 
-export const removeFromCart = (cartItemId, userId) => {
-  const params = userId ? { userId } : {};
-  return axios.delete(`/api/cart/items/${cartItemId}`, { params });
+export const removeFromCart = (cartItemId) => {
+  return axios.delete(`/api/cart/items/${cartItemId}`);
 };
 
-export const clearCart = (userId) => {
-  const params = userId ? { userId } : {};
-  return axios.delete("/api/cart/clear", { params });
+export const clearCart = () => {
+  return axios.delete("/api/cart/clear");
 };
 
-export const calculateCartTotal = (userId) => {
-  const params = userId ? { userId } : {};
-  return axios.get("/api/cart/total", { params });
+export const calculateCartTotal = () => {
+  return axios.get("/api/cart/total");
 };
 
 // 订单相关API

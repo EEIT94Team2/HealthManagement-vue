@@ -106,7 +106,8 @@ import {
   getCartItems, 
   updateCartItemQuantity, 
   removeFromCart as apiRemoveFromCart, 
-  clearCart as apiClearCart 
+  clearCart as apiClearCart,
+  createOrderFromCart
 } from '@/api/shop';
 
 const router = useRouter();
@@ -116,7 +117,7 @@ const loading = ref(false);
 
 // 检查用户是否已登录
 const checkLogin = () => {
-  if (!authStore.isLoggedIn) {
+  if (!authStore.isAuthenticated) {
     ElMessage.warning('請先登入');
     router.push('/member/login');
     return false;
@@ -130,7 +131,8 @@ const fetchCartItems = async () => {
   
   loading.value = true;
   try {
-    const response = await getCartItems();
+    const userId = authStore.userInfo?.id;
+    const response = await getCartItems(userId);
     cartItems.value = response.data;
   } catch (error) {
     console.error('獲取購物車失敗:', error);
@@ -144,7 +146,8 @@ const fetchCartItems = async () => {
 const updateQuantity = async (cartItemId, quantity) => {
   try {
     loading.value = true;
-    await updateCartItemQuantity(cartItemId, quantity);
+    const userId = authStore.userInfo?.id;
+    await updateCartItemQuantity(cartItemId, quantity, userId);
     
     // 获取最新购物车内容
     await fetchCartItems();
@@ -167,7 +170,8 @@ const removeFromCart = async (cartItemId) => {
     });
     
     loading.value = true;
-    await apiRemoveFromCart(cartItemId);
+    const userId = authStore.userInfo?.id;
+    await apiRemoveFromCart(cartItemId, userId);
     
     // 重新获取购物车内容
     await fetchCartItems();
@@ -197,7 +201,8 @@ const clearCart = async () => {
     });
     
     loading.value = true;
-    await apiClearCart();
+    const userId = authStore.userInfo?.id;
+    await apiClearCart(userId);
     
     // 清空本地购物车数据
     cartItems.value = [];
@@ -220,16 +225,38 @@ const calculateTotal = () => {
 };
 
 // 去结算
-const goToCheckout = () => {
+const goToCheckout = async () => {
   if (cartItems.value.length === 0) {
     ElMessage.warning('購物車是空的，無法結算');
     return;
   }
   
-  router.push('/shop/checkout');
+  try {
+    loading.value = true;
+    const userId = authStore.userInfo?.id;
+    
+    // 創建訂單
+    const response = await createOrderFromCart(userId);
+    const orderId = response.data.id;
+    
+    ElMessage.success('訂單創建成功，正在跳轉至支付頁面');
+    
+    // 跳轉到訂單詳情頁面
+    router.push(`/shop/orders/${orderId}`);
+  } catch (error) {
+    console.error('結算失敗:', error);
+    ElMessage.error('結算失敗，請稍後再試');
+  } finally {
+    loading.value = false;
+  }
 };
 
 onMounted(() => {
+  if (!authStore.isAuthenticated) {
+    ElMessage.warning('請先登入');
+    router.push('/member/login');
+    return;
+  }
   fetchCartItems();
 });
 </script>

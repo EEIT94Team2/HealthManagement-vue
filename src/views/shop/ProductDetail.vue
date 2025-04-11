@@ -6,8 +6,8 @@
           <h2>商品詳情</h2>
           <div class="header-actions">
             <el-button @click="$router.push('/shop/products')">返回商品列表</el-button>
-            <el-button v-if="isAdmin" type="primary" @click="$router.push(`/shop/products`)">
-              編輯商品
+            <el-button v-if="isAdmin" type="primary" @click="$router.push('/shop/product-management')">
+              管理商品
             </el-button>
           </div>
         </div>
@@ -88,7 +88,7 @@ const fetchProductDetail = async () => {
 
 // 添加到購物車
 const addToCart = async () => {
-  if (!authStore.isLoggedIn) {
+  if (!authStore.isAuthenticated) {
     ElMessage.warning('請先登入');
     router.push('/member/login');
     return;
@@ -106,7 +106,8 @@ const addToCart = async () => {
       quantity: quantity.value
     };
     
-    await addProductToCart(cartItem);
+    const userId = authStore.userInfo?.id;
+    await addProductToCart(cartItem, userId);
     ElMessage.success('成功加入購物車');
   } catch (error) {
     console.error('加入購物車失敗:', error);

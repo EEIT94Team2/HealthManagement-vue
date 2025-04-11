@@ -60,7 +60,18 @@
                     <el-icon>
                         <Goods />
                     </el-icon>
-                    <span>商品管理</span>
+                    <span>商品列表</span>
+                </el-menu-item>
+                
+                <el-menu-item
+                    v-if="userRole === 'admin'"
+                    index="/shop/product-admin"
+                    :class="{ 'is-active': activePath === '/shop/product-admin' }"
+                >
+                    <el-icon>
+                        <Setting />
+                    </el-icon>
+                    <span>商品管理後台</span>
                 </el-menu-item>
                 
                 <el-menu-item
@@ -153,6 +164,7 @@ import {
     Goods,
     Document,
     Money,
+    Setting,
 } from "@element-plus/icons-vue";
 import sidebarLogoImage from "@/assets/images/logo.png"; // 导入你的 Logo 图示
 
@@ -219,7 +231,7 @@ const handleSelect = (index, indexPath) => {
             title = "課程列表";
             break;
         case "/shop/products":
-            title = "商品管理";
+            title = "商品列表";
             break;
         case "/shop/cart":
             title = "購物車管理";

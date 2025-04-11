@@ -25,6 +25,43 @@
       
       <!-- 管理员访问内容 -->
       <div v-else class="simulation-content">
+        <!-- 訂單支付部分 -->
+        <div v-if="currentOrder && currentOrder.status === 'PENDING_PAYMENT'" class="section order-payment">
+          <h3>訂單支付</h3>
+          <el-alert
+            type="info"
+            :closable="false">
+            您正在為訂單 <strong>{{ currentOrder.id }}</strong> 進行支付，總金額: <strong>${{ currentOrder.totalAmount }}</strong>
+          </el-alert>
+          
+          <el-card class="payment-methods">
+            <h4>選擇支付方式</h4>
+            <div class="methods-list">
+              <el-radio-group v-model="selectedPaymentMethod">
+                <el-radio label="CREDIT_CARD">信用卡</el-radio>
+                <el-radio label="ALIPAY">支付寶</el-radio>
+                <el-radio label="WECHAT_PAY">微信支付</el-radio>
+              </el-radio-group>
+            </div>
+            
+            <div class="payment-summary">
+              <div class="summary-row">
+                <span>訂單金額：</span>
+                <span>${{ currentOrder.totalAmount }}</span>
+              </div>
+              <div class="summary-row">
+                <span>支付方式：</span>
+                <span>{{ getPaymentMethodLabel(selectedPaymentMethod) }}</span>
+              </div>
+            </div>
+            
+            <div class="payment-actions">
+              <el-button @click="$router.push(`/shop/orders/${currentOrder.id}`)">返回訂單</el-button>
+              <el-button type="primary" @click="createPaymentForOrder(selectedPaymentMethod)">確認支付</el-button>
+            </div>
+          </el-card>
+        </div>
+        
         <div class="section order-search">
           <h3>查詢訂單支付狀態</h3>
           <el-form :model="searchForm" label-width="120px">
@@ -122,12 +159,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/stores/auth';
-import { getPaymentStatus, mockPaymentCallback } from '@/api/shop';
+import { getPaymentStatus, mockPaymentCallback, createPayment, getOrderById } from '@/api/shop';
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 const loading = ref(false);
 const searchForm = ref({
@@ -136,6 +174,9 @@ const searchForm = ref({
 });
 const paymentInfo = ref(null);
 const pendingPayments = ref([]);
+const currentOrder = ref(null);
+const orderLoaded = ref(false);
+const selectedPaymentMethod = ref('CREDIT_CARD');
 
 // 检查是否为管理员
 const isAdmin = computed(() => {
@@ -198,6 +239,20 @@ const getPaymentResultTitle = (status) => {
   }
 };
 
+// 获取支付方式标签
+const getPaymentMethodLabel = (method) => {
+  switch (method) {
+    case 'CREDIT_CARD':
+      return '信用卡';
+    case 'ALIPAY':
+      return '支付寶';
+    case 'WECHAT_PAY':
+      return '微信支付';
+    default:
+      return method;
+  }
+};
+
 // 格式化日期
 const formatDate = (dateString) => {
   if (!dateString) return '';
@@ -207,8 +262,8 @@ const formatDate = (dateString) => {
 
 // 查询支付状态
 const searchPayment = async () => {
-  if (!searchForm.value.paymentId) {
-    ElMessage.warning('請輸入支付編號');
+  if (!searchForm.value.paymentId && !searchForm.value.orderId) {
+    ElMessage.warning('請輸入訂單編號或支付編號');
     return;
   }
   
@@ -216,9 +271,65 @@ const searchPayment = async () => {
   try {
     const response = await getPaymentStatus(searchForm.value.paymentId);
     paymentInfo.value = response.data;
+    
+    if (!paymentInfo.value) {
+      ElMessage.warning('未找到支付信息');
+    }
   } catch (error) {
     console.error('查詢支付狀態失敗:', error);
     ElMessage.error('查詢支付狀態失敗');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 从URL参数中获取订单ID并加载订单
+const loadOrderFromParams = async () => {
+  const orderId = route.query.orderId;
+  if (orderId && !isNaN(parseInt(orderId))) {
+    loading.value = true;
+    try {
+      const response = await getOrderById(parseInt(orderId));
+      currentOrder.value = response.data;
+      orderLoaded.value = true;
+      searchForm.value.orderId = orderId.toString();
+      
+      // 如果訂單尚未支付，顯示支付表單
+      if (currentOrder.value.status === 'PENDING_PAYMENT') {
+        ElMessage.info('請為訂單進行支付');
+      }
+    } catch (error) {
+      console.error('加載訂單失敗:', error);
+      ElMessage.error('加載訂單失敗');
+    } finally {
+      loading.value = false;
+    }
+  }
+};
+
+// 为当前订单创建支付
+const createPaymentForOrder = async (paymentMethod = 'CREDIT_CARD') => {
+  if (!currentOrder.value || currentOrder.value.status !== 'PENDING_PAYMENT') {
+    ElMessage.warning('當前訂單狀態不支持支付');
+    return;
+  }
+  
+  loading.value = true;
+  try {
+    const paymentRequest = {
+      method: paymentMethod,
+      amount: currentOrder.value.totalAmount
+    };
+    
+    const response = await createPayment(currentOrder.value.id, paymentRequest);
+    paymentInfo.value = response.data;
+    ElMessage.success('支付請求已創建，請確認支付');
+    
+    // 刷新待處理支付列表
+    fetchPendingPayments();
+  } catch (error) {
+    console.error('創建支付失敗:', error);
+    ElMessage.error('創建支付失敗');
   } finally {
     loading.value = false;
   }
@@ -229,18 +340,24 @@ const simulatePaymentCallback = async (paymentId, status) => {
   loading.value = true;
   try {
     await mockPaymentCallback(paymentId);
+    ElMessage.success(`模擬支付${status === 'SUCCESS' ? '成功' : '失敗'}`);
     
-    // 只是模拟，实际上后端没有 status 参数
-    ElMessage.success(`模擬支付${status === 'SUCCESS' ? '成功' : '失敗'}操作完成`);
-    
-    // 刷新支付信息
+    // 如果是當前查詢的支付，則更新其狀態
     if (paymentInfo.value && paymentInfo.value.id === paymentId) {
       const response = await getPaymentStatus(paymentId);
       paymentInfo.value = response.data;
     }
     
-    // 刷新待处理支付列表
+    // 刷新待處理支付列表
     fetchPendingPayments();
+    
+    // 如果是從訂單過來的，且支付成功，返回訂單頁面
+    if (currentOrder.value && status === 'SUCCESS') {
+      setTimeout(() => {
+        ElMessage.success('支付完成，正在返回訂單頁面');
+        router.push(`/shop/orders/${currentOrder.value.id}`);
+      }, 2000);
+    }
   } catch (error) {
     console.error('模擬支付回調失敗:', error);
     ElMessage.error('模擬支付回調失敗');
@@ -249,34 +366,25 @@ const simulatePaymentCallback = async (paymentId, status) => {
   }
 };
 
-// 获取待处理支付列表
+// 获取所有待处理的支付
 const fetchPendingPayments = async () => {
-  // 这里应该调用API获取待处理支付列表，但后端未提供该接口
-  // 模拟一些待处理的支付
-  pendingPayments.value = [
-    {
-      id: 'PAY123456789',
-      orderId: 1001,
-      amount: 299.99,
-      method: 'CREDIT_CARD',
-      createdAt: new Date(),
-      status: 'PENDING'
-    },
-    {
-      id: 'PAY987654321',
-      orderId: 1002,
-      amount: 599.50,
-      method: 'ALIPAY',
-      createdAt: new Date(Date.now() - 3600000), // 1小时前
-      status: 'PENDING'
-    }
-  ];
+  // 這裡應該調用API獲取所有待處理的支付
+  // 目前後端可能沒有提供這個API，所以用空數組代替
+  pendingPayments.value = [];
 };
 
 onMounted(() => {
-  if (isAdmin.value) {
-    fetchPendingPayments();
+  if (!authStore.isAuthenticated) {
+    ElMessage.warning('請先登入');
+    router.push('/member/login');
+    return;
   }
+  
+  // 加載URL中可能帶的訂單ID
+  loadOrderFromParams();
+  
+  // 獲取待處理支付列表
+  fetchPendingPayments();
 });
 </script>
 

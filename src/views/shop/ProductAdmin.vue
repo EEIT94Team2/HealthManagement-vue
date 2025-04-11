@@ -1,9 +1,9 @@
 <template>
-    <div class="product-management">
-        <el-card class="management-container">
+    <div class="product-admin">
+        <el-card class="admin-container">
             <template #header>
-                <div class="management-header">
-                    <h2>商品管理</h2>
+                <div class="admin-header">
+                    <h2>商品管理後台</h2>
                     <div class="search-actions">
                         <el-input 
                             v-model="searchKeyword" 
@@ -85,11 +85,14 @@
                         </template>
                     </el-table-column>
 
-                    <el-table-column label="操作" width="180" fixed="right">
+                    <el-table-column label="操作" width="220" fixed="right">
                         <template #default="{ row }">
                             <el-button-group>
                                 <el-button type="primary" size="small" @click="showEditDialog(row)">
                                     編輯
+                                </el-button>
+                                <el-button type="info" size="small" @click="viewProductDetail(row.id)">
+                                    查看
                                 </el-button>
                                 <el-button type="danger" size="small" @click="handleDelete(row)">
                                     刪除
@@ -164,7 +167,7 @@
             <template #footer>
                 <span class="dialog-footer">
                     <el-button @click="dialogVisible = false">取消</el-button>
-                    <el-button type="primary" @click="handleSubmit"> 確定 </el-button>
+                    <el-button type="primary" @click="handleSubmit">確定</el-button>
                 </span>
             </template>
         </el-dialog>
@@ -221,7 +224,7 @@ const priceRangeForm = ref({
     maxPrice: 1000
 });
 
-// 在 script setup 中添加當前篩選條件的狀態
+// 當前篩選條件
 const currentPriceFilter = ref({
     active: false,
     minPrice: 0,
@@ -266,7 +269,7 @@ const fetchProducts = async () => {
     }
 };
 
-// 修改處理搜索函數
+// 處理搜索
 const handleSearch = async () => {
     if (!isAdmin.value) return;
     
@@ -301,7 +304,7 @@ const handleSearch = async () => {
     }
 };
 
-// 修改處理價格篩選命令函數
+// 處理價格篩選
 const handleFilterCommand = (command) => {
     if (command === 'custom') {
         priceRangeDialogVisible.value = true;
@@ -339,7 +342,7 @@ const handleFilterCommand = (command) => {
     handleSearch();
 };
 
-// 修改自定義價格範圍篩選函數
+// 自定義價格範圍篩選
 const handlePriceRangeFilter = () => {
     currentPriceFilter.value = {
         active: true,
@@ -353,13 +356,12 @@ const handlePriceRangeFilter = () => {
     handleSearch();
 };
 
-// 處理分頁大小變化
+// 處理分頁
 const handleSizeChange = (val) => {
     pageSize.value = val;
     fetchProducts();
 };
 
-// 處理頁碼變化
 const handleCurrentChange = (val) => {
     currentPage.value = val;
     fetchProducts();
@@ -387,6 +389,11 @@ const showEditDialog = (row) => {
     isEdit.value = true;
     form.value = { ...row };
     dialogVisible.value = true;
+};
+
+// 查看商品詳情
+const viewProductDetail = (id) => {
+    router.push(`/shop/products/${id}`);
 };
 
 // 處理刪除
@@ -455,7 +462,7 @@ const handleUploadSuccess = (response) => {
 };
 
 onMounted(() => {
-    if (!authStore.isLoggedIn) {
+    if (!authStore.isAuthenticated) {
         ElMessage.warning('請先登入');
         router.push('/member/login');
         return;
@@ -471,16 +478,16 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.product-management {
+.product-admin {
     padding: 20px;
 }
 
-.management-container {
+.admin-container {
     max-width: 1200px;
     margin: 0 auto;
 }
 
-.management-header {
+.admin-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -500,57 +507,65 @@ onMounted(() => {
     margin-right: 10px;
 }
 
-.product-image {
-    width: 60px;
-    height: 60px;
-    border-radius: 4px;
-    object-fit: cover;
-}
-
-.description-text {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 220px;
-}
-
 .pagination {
     margin-top: 20px;
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
+}
+
+.product-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.description-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
 }
 
 .image-upload {
-    border: 1px dashed #d9d9d9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 150px;
+    border: 1px dashed #dcdfe6;
     border-radius: 6px;
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    width: 148px;
-    height: 148px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.image-upload:hover {
-    border-color: #409eff;
-}
-
-.preview-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    margin-bottom: 10px;
 }
 
 .upload-icon {
     font-size: 28px;
     color: #8c939d;
+    width: 28px;
+    height: 28px;
 }
 
-:deep(.el-upload) {
+.preview-image {
     width: 100%;
-    height: 100%;
+    max-height: 148px;
+    object-fit: contain;
+}
+
+.el-upload__text {
+    color: #606266;
+    font-size: 14px;
+    text-align: center;
+    margin: 10px 0;
+}
+
+.el-upload__tip {
+    font-size: 12px;
+    color: #606266;
+    margin-top: 5px;
 }
 
 .mt-10 {
@@ -558,7 +573,6 @@ onMounted(() => {
 }
 
 .access-denied {
-    padding: 40px 20px;
-    text-align: center;
+    padding: 30px 0;
 }
-</style>
+</style> 

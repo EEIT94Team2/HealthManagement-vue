@@ -190,7 +190,7 @@ const formatDate = (dateString) => {
 
 // 获取订单详情
 const fetchOrderDetail = async () => {
-  if (!authStore.isLoggedIn) {
+  if (!authStore.isAuthenticated) {
     ElMessage.warning('請先登入');
     router.push('/member/login');
     return;
@@ -226,27 +226,31 @@ const viewProduct = (productId) => {
 
 // 去支付
 const goToPayment = () => {
-  if (order.value?.status !== 'PENDING_PAYMENT') {
-    ElMessage.warning('該訂單不需要支付');
+  if (!order.value || order.value.status !== 'PENDING_PAYMENT') {
+    ElMessage.warning('當前訂單狀態不支持支付');
     return;
   }
   
-  router.push(`/shop/checkout?orderId=${order.value.id}`);
+  // 跳轉到支付頁面
+  router.push({
+    path: '/shop/checkout',
+    query: { orderId: order.value.id }
+  });
 };
 
-// 取消订单
+// 取消訂單
 const cancelOrder = async () => {
   try {
-    await ElMessageBox.confirm('確定要取消該訂單嗎？', '提示', {
+    await ElMessageBox.confirm('確定要取消此訂單嗎？', '提示', {
       confirmButtonText: '確定',
       cancelButtonText: '取消',
       type: 'warning'
     });
     
+    // 實現取消訂單的API調用
+    // 這裡需要後端提供取消訂單的API
     ElMessage.success('訂單已取消');
-    // 这里应该调用取消订单的API，但目前后端未提供该接口
-    // 刷新订单数据
-    fetchOrderDetail();
+    fetchOrderDetail(); // 重新獲取訂單信息
   } catch (error) {
     if (error !== 'cancel') {
       console.error('取消訂單失敗:', error);
@@ -256,6 +260,11 @@ const cancelOrder = async () => {
 };
 
 onMounted(() => {
+  if (!authStore.isAuthenticated) {
+    ElMessage.warning('請先登入');
+    router.push('/member/login');
+    return;
+  }
   fetchOrderDetail();
 });
 </script>

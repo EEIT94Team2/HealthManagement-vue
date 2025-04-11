@@ -40,6 +40,14 @@
                                 @click="viewMode = 'list'">
                             </el-button>
                         </el-button-group>
+                        
+                        <el-button 
+                            v-if="isAdmin" 
+                            type="success" 
+                            @click="$router.push('/shop/product-management')"
+                        >
+                            管理商品
+                        </el-button>
                     </div>
                 </div>
             </template>
@@ -152,7 +160,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Grid, List, Search } from '@element-plus/icons-vue';
@@ -169,6 +177,11 @@ const total = ref(0);
 const viewMode = ref('grid');
 const searchKeyword = ref('');
 const priceRange = ref('all');
+
+// 检查是否为管理员
+const isAdmin = computed(() => {
+    return authStore.userRole === 'admin';
+});
 
 const priceRangeOptions = [
     { label: '全部價格', value: 'all' },
@@ -271,7 +284,7 @@ const goToProductDetail = (productId) => {
 
 // 快速加入购物车
 const quickAddToCart = async (product) => {
-    if (!authStore.isLoggedIn) {
+    if (!authStore.isAuthenticated) {
         ElMessage.warning('請先登入');
         router.push('/member/login');
         return;
@@ -284,7 +297,8 @@ const quickAddToCart = async (product) => {
             quantity: 1
         };
         
-        await addProductToCart(cartItem);
+        const userId = authStore.userInfo?.id;
+        await addProductToCart(cartItem, userId);
         ElMessage.success('已加入購物車');
     } catch (error) {
         console.error('加入購物車失敗:', error);

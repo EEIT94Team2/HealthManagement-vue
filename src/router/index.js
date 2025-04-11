@@ -17,6 +17,8 @@ import OrderDetail from "@/views/shop/OrderDetail.vue";
 import CartManagement from "@/views/shop/CartManagement.vue";
 import ProductList from "@/views/shop/ProductList.vue";
 import ProductDetail from "@/views/shop/ProductDetail.vue";
+import ProductManagement from "@/views/shop/ProductManagement.vue";
+import ProductAdmin from "@/views/shop/ProductAdmin.vue";
 import PaymentSimulation from "@/views/shop/PaymentSimulation.vue";
 
 // 論壇
@@ -113,6 +115,18 @@ const routes = [
                 name: "ProductDetail",
                 component: ProductDetail,
                 meta: { title: "商品詳情", requiresAuth: true },
+            },
+            {
+                path: "shop/product-management",
+                name: "ProductManagement",
+                component: ProductManagement,
+                meta: { title: "商品管理", requiresAuth: true, requiresAdmin: true },
+            },
+            {
+                path: "shop/product-admin",
+                name: "ProductAdmin",
+                component: ProductAdmin,
+                meta: { title: "商品管理後台", requiresAuth: true, requiresAdmin: true },
             },
             {
                 path: "shop/cart",
