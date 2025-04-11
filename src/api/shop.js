@@ -1,8 +1,8 @@
 import axios from "@/api/config/axios";
 
 // 商品相关API
-export const getProducts = () => {
-  return axios.get("/api/products");
+export const getProducts = (params) => {
+  return axios.get("/api/products", { params });
 };
 
 export const getProductById = (id) => {

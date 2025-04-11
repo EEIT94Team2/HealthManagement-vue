@@ -40,7 +40,7 @@
           
           <el-table-column prop="product.price" label="單價" width="120">
             <template #default="{ row }">
-              ${{ row.product.price }}
+              ${{ Math.floor(row.product.price) }}
             </template>
           </el-table-column>
           
@@ -58,7 +58,7 @@
           
           <el-table-column label="小計" width="120">
             <template #default="{ row }">
-              ${{ (row.product.price * row.quantity).toFixed(2) }}
+              ${{ Math.floor(row.product.price * row.quantity) }}
             </template>
           </el-table-column>
           
@@ -219,9 +219,8 @@ const clearCart = async () => {
 
 // 计算购物车总价
 const calculateTotal = () => {
-  return cartItems.value
-    .reduce((total, item) => total + item.product.price * item.quantity, 0)
-    .toFixed(2);
+  return Math.floor(cartItems.value
+    .reduce((total, item) => total + item.product.price * item.quantity, 0));
 };
 
 // 去结算

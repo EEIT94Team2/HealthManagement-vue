@@ -3,7 +3,26 @@
         <el-card class="product-list-card">
             <template #header>
                 <div class="product-list-header">
-                    <h2>商品列表</h2>
+                    <div class="header-left">
+                        <h2>商品列表</h2>
+                        <el-button-group class="view-mode-group">
+                            <el-button 
+                                type="primary" 
+                                :plain="viewMode !== 'grid'" 
+                                icon="Grid" 
+                                @click="viewMode = 'grid'">
+                                網格
+                            </el-button>
+                            <el-button 
+                                type="primary" 
+                                :plain="viewMode !== 'list'" 
+                                icon="List" 
+                                @click="viewMode = 'list'">
+                                列表
+                            </el-button>
+                        </el-button-group>
+                    </div>
+                    
                     <div class="filter-container">
                         <el-input 
                             v-model="searchKeyword" 
@@ -12,8 +31,8 @@
                             clearable 
                             @keyup.enter="handleSearch"
                         >
-                            <template #append>
-                                <el-button icon="Search" @click="handleSearch"></el-button>
+                            <template #prefix>
+                                <el-icon class="search-icon"><Search /></el-icon>
                             </template>
                         </el-input>
                         
@@ -25,29 +44,6 @@
                                 :value="item.value">
                             </el-option>
                         </el-select>
-                        
-                        <el-button-group>
-                            <el-button 
-                                type="primary" 
-                                :plain="viewMode !== 'grid'" 
-                                icon="Grid" 
-                                @click="viewMode = 'grid'">
-                            </el-button>
-                            <el-button 
-                                type="primary" 
-                                :plain="viewMode !== 'list'" 
-                                icon="List" 
-                                @click="viewMode = 'list'">
-                            </el-button>
-                        </el-button-group>
-                        
-                        <el-button 
-                            v-if="isAdmin" 
-                            type="success" 
-                            @click="$router.push('/shop/product-management')"
-                        >
-                            管理商品
-                        </el-button>
                     </div>
                 </div>
             </template>
@@ -79,9 +75,10 @@
                             </div>
                             <div class="product-info">
                                 <h3 class="product-name">{{ product.name }}</h3>
-                                <div class="product-price">${{ product.price }}</div>
+                                <div class="product-price">${{ Math.floor(product.price) }}</div>
                                 <div class="product-action">
-                                    <el-button type="primary" size="small" @click.stop="quickAddToCart(product)">
+                                    <el-button type="primary" size="large" @click.stop="quickAddToCart(product)" class="cart-button">
+                                        <el-icon class="cart-icon"><ShoppingCart /></el-icon>
                                         加入購物車
                                     </el-button>
                                 </div>
@@ -104,15 +101,23 @@
                         </template>
                     </el-table-column>
                     
-                    <el-table-column prop="name" label="商品名稱" min-width="180" />
-                    
-                    <el-table-column prop="price" label="價格" width="100">
+                    <el-table-column prop="name" label="商品名稱" min-width="180" align="center">
                         <template #default="{ row }">
-                            ${{ row.price }}
+                            <span class="bold-text">{{ row.name }}</span>
                         </template>
                     </el-table-column>
                     
-                    <el-table-column prop="stockQuantity" label="庫存" width="80" />
+                    <el-table-column prop="price" label="價格" width="100" align="right">
+                        <template #default="{ row }">
+                            <span class="bold-text">${{ Math.floor(row.price) }}</span>
+                        </template>
+                    </el-table-column>
+                    
+                    <el-table-column prop="stockQuantity" label="庫存" width="80">
+                        <template #default="{ row }">
+                            <span class="bold-text">{{ row.stockQuantity }}</span>
+                        </template>
+                    </el-table-column>
                     
                     <el-table-column prop="description" label="描述" min-width="200">
                         <template #default="{ row }">
@@ -126,13 +131,15 @@
                         </template>
                     </el-table-column>
                     
-                    <el-table-column label="操作" width="120" fixed="right">
+                    <el-table-column label="操作" width="150" fixed="right" align="center">
                         <template #default="{ row }">
                             <el-button 
                                 type="primary" 
-                                size="small" 
+                                size="large" 
                                 @click.stop="quickAddToCart(row)"
+                                class="cart-button-list"
                             >
+                                <el-icon class="cart-icon"><ShoppingCart /></el-icon>
                                 加入購物車
                             </el-button>
                         </template>
@@ -163,7 +170,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { Grid, List, Search } from '@element-plus/icons-vue';
+import { Grid, List, Search, Plus, ShoppingCart } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { getProducts, searchProducts, getProductsByPriceRange, addToCart as addProductToCart } from '@/api/shop';
 
@@ -194,87 +201,147 @@ const priceRangeOptions = [
 const fetchProducts = async () => {
     loading.value = true;
     try {
-        const response = await getProducts();
-        products.value = response.data;
-        total.value = response.data.length;
+        const params = {
+            page: currentPage.value,
+            size: pageSize.value
+        };
+        
+        const response = await getProducts(params);
+        
+        // 假設API返回的是完整數據，前端根據分頁參數處理
+        const allProducts = response.data || [];
+        total.value = allProducts.length;
+        
+        // 手動實現分頁邏輯
+        const startIndex = (currentPage.value - 1) * pageSize.value;
+        const endIndex = startIndex + pageSize.value;
+        products.value = allProducts.slice(startIndex, endIndex);
     } catch (error) {
-        console.error('获取商品列表失败:', error);
-        ElMessage.error('获取商品列表失败');
+        console.error('獲取商品列表失敗:', error);
+        ElMessage.error('獲取商品列表失敗');
     } finally {
         loading.value = false;
     }
 };
 
-// 搜索商品
+// 处理搜索
 const handleSearch = async () => {
-    if (!searchKeyword.value.trim()) {
-        return fetchProducts();
-    }
-    
     loading.value = true;
+    currentPage.value = 1; // 重置為第一頁
+    
     try {
+        if (searchKeyword.value.trim() === '') {
+            // 如果搜索關鍵詞為空，則獲取所有商品
+            await fetchProducts();
+            return;
+        }
+        
+        // 先獲取符合搜索條件的所有商品
         const response = await searchProducts(searchKeyword.value);
-        products.value = response.data;
-        total.value = response.data.length;
+        const searchResults = response.data || [];
+        
+        // 根據當前價格範圍篩選
+        let filteredResults = filterByPrice(searchResults);
+        
+        total.value = filteredResults.length;
+        
+        // 手動實現分頁邏輯
+        const startIndex = (currentPage.value - 1) * pageSize.value;
+        const endIndex = startIndex + pageSize.value;
+        products.value = filteredResults.slice(startIndex, endIndex);
     } catch (error) {
-        console.error('搜索商品失败:', error);
-        ElMessage.error('搜索商品失败');
+        console.error('搜索商品失敗:', error);
+        ElMessage.error('搜索商品失敗');
     } finally {
         loading.value = false;
     }
 };
 
-// 价格范围筛选
-const handlePriceRangeChange = () => {
+// 根据价格范围筛选商品
+const filterByPrice = (items) => {
     if (priceRange.value === 'all') {
-        fetchProducts();
-        return;
+        return items;
     }
     
-    let minPrice = 0;
-    let maxPrice = 10000;
-    
-    switch (priceRange.value) {
-        case 'low':
-            maxPrice = 100;
-            break;
-        case 'medium':
-            minPrice = 100;
-            maxPrice = 500;
-            break;
-        case 'high':
-            minPrice = 500;
-            break;
-    }
-    
-    filterByPriceRange(minPrice, maxPrice);
+    return items.filter(item => {
+        const price = parseFloat(item.price);
+        switch(priceRange.value) {
+            case 'low':
+                return price < 100;
+            case 'medium':
+                return price >= 100 && price <= 500;
+            case 'high':
+                return price > 500;
+            default:
+                return true;
+        }
+    });
 };
 
-// 按价格范围筛选
-const filterByPriceRange = async (minPrice, maxPrice) => {
+// 处理价格范围变化
+const handlePriceRangeChange = async () => {
     loading.value = true;
+    currentPage.value = 1; // 重置為第一頁
+    
     try {
-        const response = await getProductsByPriceRange(minPrice, maxPrice);
-        products.value = response.data;
-        total.value = response.data.length;
+        let allProducts = [];
+        
+        if (searchKeyword.value.trim() !== '') {
+            // 如果有搜索關鍵詞，則從搜索結果中篩選
+            const response = await searchProducts(searchKeyword.value);
+            allProducts = response.data || [];
+        } else {
+            // 否則獲取所有商品
+            const response = await getProducts();
+            allProducts = response.data || [];
+        }
+        
+        // 根據價格範圍篩選商品
+        const filteredProducts = filterByPrice(allProducts);
+        total.value = filteredProducts.length;
+        
+        // 手動實現分頁邏輯
+        const startIndex = (currentPage.value - 1) * pageSize.value;
+        const endIndex = startIndex + pageSize.value;
+        products.value = filteredProducts.slice(startIndex, endIndex);
     } catch (error) {
-        console.error('按价格筛选商品失败:', error);
-        ElMessage.error('按价格筛选商品失败');
+        console.error('按價格範圍篩選失敗:', error);
+        ElMessage.error('按價格範圍篩選失敗');
     } finally {
         loading.value = false;
     }
 };
 
-// 处理分页大小变化
+// 分页大小变化处理
 const handleSizeChange = (val) => {
     pageSize.value = val;
-    // 这里应该重新请求数据，但由于API不支持分页，所以只是模拟
+    
+    // 當前頁的數據數量可能會發生變化，需要重新計算
+    const maxPage = Math.ceil(total.value / pageSize.value);
+    if (currentPage.value > maxPage) {
+        currentPage.value = maxPage || 1;
+    }
+    
+    if (searchKeyword.value.trim() !== '') {
+        handleSearch();
+    } else if (priceRange.value !== 'all') {
+        handlePriceRangeChange();
+    } else {
+        fetchProducts();
+    }
 };
 
-// 处理当前页变化
+// 页码变化处理
 const handleCurrentChange = (val) => {
     currentPage.value = val;
-    // 这里应该重新请求数据，但由于API不支持分页，所以只是模拟
+    
+    if (searchKeyword.value.trim() !== '') {
+        handleSearch();
+    } else if (priceRange.value !== 'all') {
+        handlePriceRangeChange();
+    } else {
+        fetchProducts();
+    }
 };
 
 // 跳转到商品详情页
@@ -329,6 +396,16 @@ onMounted(() => {
     align-items: center;
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.view-mode-group {
+    margin-left: 10px;
+}
+
 .filter-container {
     display: flex;
     gap: 15px;
@@ -336,7 +413,22 @@ onMounted(() => {
 }
 
 .search-input {
-    width: 250px;
+    width: 450px;
+    font-size: 16px;
+}
+
+.search-icon {
+    font-size: 18px;
+    margin-right: 5px;
+}
+
+.admin-button {
+    width: 50px;
+    height: 50px;
+}
+
+.admin-icon {
+    font-size: 24px;
 }
 
 .loading-container {
@@ -395,6 +487,8 @@ onMounted(() => {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    text-align: center;
+    font-weight: bold;
 }
 
 .product-price {
@@ -402,11 +496,29 @@ onMounted(() => {
     font-size: 18px;
     font-weight: bold;
     margin-bottom: 15px;
+    text-align: right;
 }
 
 .product-action {
     margin-top: auto;
     text-align: center;
+}
+
+.cart-button, .cart-button-list {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 16px;
+    margin: 0 auto;
+}
+
+.cart-icon {
+    font-size: 20px;
+}
+
+.cart-button-list {
+    width: 80%;
 }
 
 .table-product-image {
@@ -430,5 +542,9 @@ onMounted(() => {
 
 :deep(.el-table__row) {
     cursor: pointer;
+}
+
+.bold-text {
+    font-weight: bold;
 }
 </style> 

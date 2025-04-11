@@ -32,7 +32,10 @@
                             </template>
                         </el-dropdown>
                         
-                        <el-button type="primary" @click="showAddDialog">新增商品</el-button>
+                        <el-button type="success" size="large" @click="showAddDialog" class="add-product-btn">
+                            <el-icon class="add-icon"><Plus /></el-icon>
+                            <span class="bold-text">新增商品</span>
+                        </el-button>
                     </div>
                 </div>
             </template>
@@ -59,6 +62,9 @@
                                 fit="cover" 
                                 class="product-image"
                                 :preview-src-list="[row.imageUrl]"
+                                :initial-index="0"
+                                :append-to-body="true"
+                                :z-index="3000"
                             />
                         </template>
                     </el-table-column>
@@ -66,10 +72,25 @@
                     <el-table-column prop="name" label="商品名稱" min-width="180" />
 
                     <el-table-column prop="price" label="價格" width="120">
-                        <template #default="{ row }"> ${{ row.price }} </template>
+                        <template #default="{ row }"> ${{ Math.floor(row.price) }} </template>
                     </el-table-column>
 
-                    <el-table-column prop="stockQuantity" label="庫存" width="120" />
+                    <el-table-column prop="stockQuantity" label="庫存" width="120">
+                        <template #default="{ row }">
+                            <el-tooltip
+                                :content="row.stockQuantity < 50 ? '庫存不足，請及時補貨' : '庫存充足'"
+                                placement="top"
+                            >
+                                <span :class="{'low-stock': row.stockQuantity < 50}">{{ row.stockQuantity }}</span>
+                            </el-tooltip>
+                        </template>
+                        <template #header>
+                            <span>庫存</span>
+                            <el-tooltip content="庫存少於50時會顯示紅色提示" placement="top">
+                                <el-icon><InfoFilled /></el-icon>
+                            </el-tooltip>
+                        </template>
+                    </el-table-column>
                     
                     <el-table-column label="描述" min-width="220">
                         <template #default="{ row }">
@@ -87,17 +108,40 @@
 
                     <el-table-column label="操作" width="220" fixed="right">
                         <template #default="{ row }">
-                            <el-button-group>
-                                <el-button type="primary" size="small" @click="showEditDialog(row)">
-                                    編輯
-                                </el-button>
-                                <el-button type="info" size="small" @click="viewProductDetail(row.id)">
-                                    查看
-                                </el-button>
-                                <el-button type="danger" size="small" @click="handleDelete(row)">
-                                    刪除
-                                </el-button>
-                            </el-button-group>
+                            <div class="table-actions">
+                                <el-tooltip content="編輯" placement="top">
+                                    <el-button 
+                                        type="warning" 
+                                        circle 
+                                        size="large"
+                                        @click="showEditDialog(row)"
+                                    >
+                                        <el-icon class="action-icon"><Tools /></el-icon>
+                                    </el-button>
+                                </el-tooltip>
+                                
+                                <el-tooltip content="查看" placement="top">
+                                    <el-button 
+                                        type="primary" 
+                                        circle 
+                                        size="large"
+                                        @click="viewProductDetail(row.id)"
+                                    >
+                                        <el-icon class="action-icon"><View /></el-icon>
+                                    </el-button>
+                                </el-tooltip>
+                                
+                                <el-tooltip content="刪除" placement="top">
+                                    <el-button 
+                                        type="danger" 
+                                        circle 
+                                        size="large"
+                                        @click="handleDelete(row)"
+                                    >
+                                        <el-icon class="action-icon"><CircleClose /></el-icon>
+                                    </el-button>
+                                </el-tooltip>
+                            </div>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -143,24 +187,25 @@
                 <el-form-item label="商品圖片" prop="imageUrl">
                     <el-upload
                         class="image-upload"
-                        action="/api/upload"
-                        :show-file-list="false"
-                        :on-success="handleUploadSuccess"
-                        :before-upload="beforeUpload"
+                        action="#"
                         :auto-upload="false"
+                        :show-file-list="false"
+                        :on-change="(file) => beforeUpload(file.raw)"
                     >
                         <img v-if="form.imageUrl" :src="form.imageUrl" class="preview-image" />
                         <div v-else>
-                            <el-icon class="upload-icon"><Plus /></el-icon>
-                            <div class="el-upload__text">上傳圖片或輸入URL</div>
+                            <el-icon class="upload-icon"><Upload /></el-icon>
+                            <div class="el-upload__text">點擊上傳圖片或輸入URL</div>
                         </div>
                     </el-upload>
-                    <el-input
-                        v-model="form.imageUrl"
-                        placeholder="或直接輸入圖片URL"
-                        class="mt-10"
-                    />
-                    <div class="el-upload__tip">注意：由於暫無圖片上傳API，請直接輸入圖片URL</div>
+                    <div class="upload-info">
+                        <el-input
+                            v-model="form.imageUrl"
+                            placeholder="或直接輸入圖片URL"
+                            class="mt-10"
+                        />
+                        <div class="el-upload__tip">支持上傳本地圖片或輸入圖片URL</div>
+                    </div>
                 </el-form-item>
             </el-form>
 
@@ -195,7 +240,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from 'vue-router';
-import { Edit, Delete, Plus, ArrowDown, Search } from "@element-plus/icons-vue";
+import { Edit, Delete, Plus, ArrowDown, Search, Upload, View, Tools, CircleClose, InfoFilled } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useAuthStore } from "@/stores/auth";
 import { 
@@ -206,6 +251,7 @@ import {
     searchProducts,
     getProductsByPriceRange 
 } from "@/api/shop";
+import { uploadLocalImage } from "@/utils/imageUpload";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -258,9 +304,21 @@ const fetchProducts = async () => {
     
     loading.value = true;
     try {
-        const response = await getProducts();
-        products.value = response.data;
-        total.value = response.data.length;
+        const params = {
+            page: currentPage.value,
+            size: pageSize.value
+        };
+        
+        const response = await getProducts(params);
+        
+        // 假設API返回的是完整數據，前端根據分頁參數處理
+        const allProducts = response.data || [];
+        total.value = allProducts.length;
+        
+        // 手動實現分頁邏輯
+        const startIndex = (currentPage.value - 1) * pageSize.value;
+        const endIndex = startIndex + pageSize.value;
+        products.value = allProducts.slice(startIndex, endIndex);
     } catch (error) {
         console.error("獲取商品列表失敗:", error);
         ElMessage.error("獲取商品列表失敗");
@@ -452,13 +510,44 @@ const handleSubmit = async () => {
 
 // 上傳前驗證
 const beforeUpload = (file) => {
-    ElMessage.warning("當前系統暫不支持圖片上傳，請直接輸入圖片URL");
-    return false; // 阻止上傳
+    // 檢查文件類型
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) {
+        ElMessage.error('只能上傳圖片文件!');
+        return false;
+    }
+    
+    // 檢查文件大小（最大5MB）
+    const isLt5M = file.size / 1024 / 1024 < 5;
+    if (!isLt5M) {
+        ElMessage.error('圖片大小不能超過5MB!');
+        return false;
+    }
+    
+    // 處理上傳
+    handleLocalImageUpload(file);
+    return false; // 阻止默認上傳行為
 };
 
-// 上傳成功回調
+// 處理本地圖片上傳
+const handleLocalImageUpload = async (file) => {
+    try {
+        loading.value = true;
+        const result = await uploadLocalImage(file);
+        form.value.imageUrl = result.imageUrl;
+        ElMessage.success('圖片上傳成功');
+    } catch (error) {
+        console.error('圖片上傳失敗:', error);
+        ElMessage.error(`圖片上傳失敗: ${error.message}`);
+    } finally {
+        loading.value = false;
+    }
+};
+
+// 上傳成功回調 (這個已不需要了，但保留以避免錯誤)
 const handleUploadSuccess = (response) => {
-    ElMessage.warning("當前系統暫不支持圖片上傳，請直接輸入圖片URL");
+    // 在實際項目中，這裡會使用後端返回的URL
+    // 在我們的模擬情況下，不會用到這個函數
 };
 
 onMounted(() => {
@@ -507,6 +596,32 @@ onMounted(() => {
     margin-right: 10px;
 }
 
+.add-product-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background-color: #67c23a;
+    font-weight: bold;
+}
+
+.add-icon {
+    font-size: 20px;
+}
+
+.table-actions {
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+}
+
+.action-icon {
+    font-size: 18px;
+}
+
+.bold-text {
+    font-weight: bold;
+}
+
 .pagination {
     margin-top: 20px;
     display: flex;
@@ -526,6 +641,11 @@ onMounted(() => {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 300px;
+}
+
+.low-stock {
+    color: #f56c6c;
+    font-weight: bold;
 }
 
 .image-upload {
@@ -553,6 +673,7 @@ onMounted(() => {
     width: 100%;
     max-height: 148px;
     object-fit: contain;
+    border-radius: 4px;
 }
 
 .el-upload__text {
@@ -574,5 +695,9 @@ onMounted(() => {
 
 .access-denied {
     padding: 30px 0;
+}
+
+.upload-info {
+    margin-top: 10px;
 }
 </style> 

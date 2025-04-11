@@ -6,7 +6,8 @@
           <h2>商品詳情</h2>
           <div class="header-actions">
             <el-button @click="$router.push('/shop/products')">返回商品列表</el-button>
-            <el-button v-if="isAdmin" type="primary" @click="$router.push('/shop/product-management')">
+            <el-button v-if="isAdmin" type="primary" @click="$router.push('/shop/product-admin')" class="admin-button">
+              <i class="bi bi-arrow-right-square"></i>
               管理商品
             </el-button>
           </div>
@@ -26,16 +27,16 @@
         <el-col :span="14">
           <div class="product-info">
             <h1 class="product-name">{{ product.name }}</h1>
-            <div class="product-price">價格: ${{ product.price }}</div>
+            <div class="product-price"> ${{ product.price }}</div>
             <div class="product-stock">庫存: {{ product.stockQuantity }} 件</div>
             <div class="product-description">
-              <h3>商品描述:</h3>
               <p>{{ product.description }}</p>
             </div>
 
             <div class="product-actions">
               <el-input-number v-model="quantity" :min="1" :max="product.stockQuantity" />
-              <el-button type="primary" :disabled="product.stockQuantity < 1" @click="addToCart">
+              <el-button type="primary" :disabled="product.stockQuantity < 1" @click="addToCart" class="cart-button">
+                <el-icon class="cart-icon"><ShoppingCart /></el-icon>
                 加入購物車
               </el-button>
             </div>
@@ -52,6 +53,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import { ShoppingCart } from '@element-plus/icons-vue';
 import { useAuthStore } from '@/stores/auth';
 import { getProductById, addToCart as addProductToCart } from '@/api/shop';
 
@@ -167,6 +169,7 @@ onMounted(() => {
   font-size: 24px;
   margin-bottom: 20px;
   color: #333;
+  font-weight: bold;
 }
 
 .product-price {
@@ -205,5 +208,27 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 15px;
+}
+
+.cart-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.cart-icon {
+  font-size: 20px;
+}
+
+.admin-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.admin-button i {
+  font-size: 16px;
+  margin-right: 5px;
 }
 </style> 

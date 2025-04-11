@@ -32,7 +32,10 @@
                             </template>
                         </el-dropdown>
                         
-                        <el-button type="primary" @click="showAddDialog">新增商品</el-button>
+                        <el-button type="success" size="large" @click="showAddDialog" class="add-product-btn">
+                            <el-icon class="add-icon"><Plus /></el-icon>
+                            <span class="bold-text">新增商品</span>
+                        </el-button>
                     </div>
                 </div>
             </template>
@@ -59,6 +62,9 @@
                                 fit="cover" 
                                 class="product-image"
                                 :preview-src-list="[row.imageUrl]"
+                                :initial-index="0"
+                                :append-to-body="true"
+                                :z-index="3000"
                             />
                         </template>
                     </el-table-column>
@@ -69,7 +75,22 @@
                         <template #default="{ row }"> ${{ row.price }} </template>
                     </el-table-column>
 
-                    <el-table-column prop="stockQuantity" label="庫存" width="120" />
+                    <el-table-column prop="stockQuantity" label="庫存" width="120">
+                        <template #default="{ row }">
+                            <el-tooltip
+                                :content="row.stockQuantity < 50 ? '庫存不足，請及時補貨' : '庫存充足'"
+                                placement="top"
+                            >
+                                <span :class="{'low-stock': row.stockQuantity < 50}">{{ row.stockQuantity }}</span>
+                            </el-tooltip>
+                        </template>
+                        <template #header>
+                            <span>庫存</span>
+                            <el-tooltip content="庫存少於50時會顯示紅色提示" placement="top">
+                                <el-icon><InfoFilled /></el-icon>
+                            </el-tooltip>
+                        </template>
+                    </el-table-column>
                     
                     <el-table-column label="描述" min-width="220">
                         <template #default="{ row }">
@@ -85,16 +106,42 @@
                         </template>
                     </el-table-column>
 
-                    <el-table-column label="操作" width="180" fixed="right">
+                    <el-table-column label="操作" width="220" fixed="right">
                         <template #default="{ row }">
-                            <el-button-group>
-                                <el-button type="primary" size="small" @click="showEditDialog(row)">
-                                    編輯
-                                </el-button>
-                                <el-button type="danger" size="small" @click="handleDelete(row)">
-                                    刪除
-                                </el-button>
-                            </el-button-group>
+                            <div class="table-actions">
+                                <el-tooltip content="查看" placement="top">
+                                    <el-button 
+                                        type="primary" 
+                                        circle 
+                                        size="large"
+                                        @click="$router.push(`/shop/products/${row.id}`)"
+                                    >
+                                        <el-icon class="action-icon"><View /></el-icon>
+                                    </el-button>
+                                </el-tooltip>
+                                
+                                <el-tooltip content="編輯" placement="top">
+                                    <el-button 
+                                        type="warning" 
+                                        circle 
+                                        size="large"
+                                        @click="showEditDialog(row)"
+                                    >
+                                        <el-icon class="action-icon"><Tools /></el-icon>
+                                    </el-button>
+                                </el-tooltip>
+                                
+                                <el-tooltip content="刪除" placement="top">
+                                    <el-button 
+                                        type="danger" 
+                                        circle 
+                                        size="large"
+                                        @click="handleDelete(row)"
+                                    >
+                                        <el-icon class="action-icon"><CircleClose /></el-icon>
+                                    </el-button>
+                                </el-tooltip>
+                            </div>
                         </template>
                     </el-table-column>
                 </el-table>
@@ -192,7 +239,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from 'vue-router';
-import { Edit, Delete, Plus, ArrowDown, Search } from "@element-plus/icons-vue";
+import { Edit, Delete, Plus, ArrowDown, Search, View, Tools, CircleClose, InfoFilled } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useAuthStore } from "@/stores/auth";
 import { 
@@ -500,6 +547,28 @@ onMounted(() => {
     margin-right: 10px;
 }
 
+.add-product-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background-color: #67c23a;
+    font-weight: bold;
+}
+
+.add-icon {
+    font-size: 20px;
+}
+
+.table-actions {
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+}
+
+.action-icon {
+    font-size: 18px;
+}
+
 .product-image {
     width: 60px;
     height: 60px;
@@ -560,5 +629,14 @@ onMounted(() => {
 .access-denied {
     padding: 40px 20px;
     text-align: center;
+}
+
+.low-stock {
+    color: #f56c6c;
+    font-weight: bold;
+}
+
+.bold-text {
+    font-weight: bold;
 }
 </style>

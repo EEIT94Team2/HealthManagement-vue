@@ -33,6 +33,9 @@ import AdminBodyData from "@/views/fitness/backend/BodyData.vue";
 import AdminGoalsProgress from "@/views/fitness/backend/GoalsProgress.vue";
 import ReportsAnalysis from "@/views/fitness/backend/ReportsAnalysis.vue";
 
+// 錯誤頁面
+import Forbidden403 from "@/views/403.vue";
+
 const routes = [
     {
         path: "/",
@@ -213,7 +216,22 @@ const routes = [
                     isAdmin: true,
                 },
             },
+
+            // 錯誤頁面
+            {
+                path: "error/403",
+                name: "Forbidden",
+                component: Forbidden403,
+                meta: { title: "訪問被拒絕" },
+            },
         ],
+    },
+    // 全局錯誤頁面，不使用布局
+    {
+        path: "/error/403",
+        name: "GlobalForbidden",
+        component: Forbidden403,
+        meta: { title: "訪問被拒絕" },
     },
 ];
 
@@ -236,12 +254,24 @@ router.beforeEach((to, from, next) => {
 
         if (to.meta.requiresAdmin && userRole !== "admin") {
             ElMessage.error("您沒有訪問此頁面的權限");
-            return next("/dashboard");
+            return next({
+                path: "/error/403",
+                query: { 
+                    message: "您沒有管理員權限，無法訪問此頁面", 
+                    code: "ERR_BAD_REQUEST" 
+                }
+            });
         }
 
         if (to.meta.isAdmin && userRole !== "admin") {
             ElMessage.error("您沒有管理員權限");
-            return next("/dashboard");
+            return next({
+                path: "/error/403",
+                query: { 
+                    message: "您沒有管理員權限，無法訪問此頁面", 
+                    code: "ERR_BAD_REQUEST" 
+                }
+            });
         }
 
         return next();
