@@ -12,12 +12,12 @@ import MemberProfileView from "@/views/member/MemberProfileView.vue";
 import MemberManagement from "@/views/member/MemberManagement.vue";
 
 // 商城管理
-// import OrderList from "@/views/shop/OrderList.vue";
-// import OrderDetail from "@/views/shop/OrderDetail.vue";
-// import CartManagement from "@/views/shop/CartManagement.vue";
+import OrderList from "@/views/shop/OrderList.vue";
+import OrderDetail from "@/views/shop/OrderDetail.vue";
+import CartManagement from "@/views/shop/CartManagement.vue";
 import ProductList from "@/views/shop/ProductList.vue";
 import ProductDetail from "@/views/shop/ProductDetail.vue";
-// import PaymentSimulation from "@/views/shop/PaymentSimulation.vue";
+import PaymentSimulation from "@/views/shop/PaymentSimulation.vue";
 
 // 論壇
 import ForumHomeView from "@/views/social/ForumHomeView.vue";
@@ -87,9 +87,7 @@ const routes = [
                 component: MemberManagement,
                 meta: { title: "會員總管", requiresAuth: true, requiresAdmin: true },
             },
-
             // 商城管理
-            /* 已注释订单管理
             {
                 path: "shop/orders",
                 name: "OrderList",
@@ -100,9 +98,9 @@ const routes = [
                 path: "shop/orders/:id",
                 name: "OrderDetail",
                 component: OrderDetail,
-                meta: { title: "訂單詳情", hidden: true, requiresAuth: true },
+                meta: { title: "訂單詳情", requiresAuth: true },
             },
-            */
+
             {
                 path: "shop/products",
                 name: "ProductList",
@@ -114,24 +112,21 @@ const routes = [
                 path: "shop/products/:id",
                 name: "ProductDetail",
                 component: ProductDetail,
-                meta: { title: "商品詳情", hidden: true, requiresAuth: true },
+                meta: { title: "商品詳情", requiresAuth: true },
             },
-            /* 已注释购物车管理
             {
                 path: "shop/cart",
                 name: "CartManagement",
                 component: CartManagement,
                 meta: { title: "購物車管理", requiresAuth: true },
             },
-            */
-            /* 已注释模拟支付
+
             {
                 path: "shop/checkout",
                 name: "PaymentSimulation",
                 component: PaymentSimulation,
                 meta: { title: "模擬支付", requiresAuth: true },
             },
-            */
 
             // 論壇
             {

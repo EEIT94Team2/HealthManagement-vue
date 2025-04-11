@@ -62,6 +62,37 @@
                     </el-icon>
                     <span>商品管理</span>
                 </el-menu-item>
+                
+                <el-menu-item
+                    index="/shop/cart"
+                    :class="{ 'is-active': activePath === '/shop/cart' }"
+                >
+                    <el-icon>
+                        <ShoppingCart />
+                    </el-icon>
+                    <span>購物車管理</span>
+                </el-menu-item>
+                
+                <el-menu-item
+                    index="/shop/orders"
+                    :class="{ 'is-active': activePath === '/shop/orders' }"
+                >
+                    <el-icon>
+                        <Document />
+                    </el-icon>
+                    <span>訂單管理</span>
+                </el-menu-item>
+                
+                <el-menu-item
+                    v-if="userRole === 'admin'"
+                    index="/shop/checkout"
+                    :class="{ 'is-active': activePath === '/shop/checkout' }"
+                >
+                    <el-icon>
+                        <Money />
+                    </el-icon>
+                    <span>模擬支付</span>
+                </el-menu-item>
             </el-sub-menu>
 
             <el-sub-menu index="fitness">
@@ -109,8 +140,8 @@
 </template>
 
 <script setup>
-import { ref, defineEmits, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { ref, defineEmits, onMounted, computed } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import {
     HomeFilled,
     Calendar,
@@ -120,10 +151,13 @@ import {
     Histogram,
     Shop,
     Goods,
+    Document,
+    Money,
 } from "@element-plus/icons-vue";
 import sidebarLogoImage from "@/assets/images/logo.png"; // 导入你的 Logo 图示
 
 const router = useRouter();
+const route = useRoute();
 const emit = defineEmits(["update-title"]);
 const props = defineProps({
     title: {
@@ -159,6 +193,10 @@ onMounted(() => {
     userRole.value = localStorage.getItem("userRole") || "";
 });
 
+const activePath = computed(() => {
+    return route.path;
+});
+
 const handleSelect = (index, indexPath) => {
     let title = "後端管理系統";
     switch (index) {
@@ -182,6 +220,15 @@ const handleSelect = (index, indexPath) => {
             break;
         case "/shop/products":
             title = "商品管理";
+            break;
+        case "/shop/cart":
+            title = "購物車管理";
+            break;
+        case "/shop/orders":
+            title = "訂單管理";
+            break;
+        case "/shop/checkout":
+            title = "模擬支付";
             break;
         case "/fitness/admin/workouts":
             title = "運動紀錄管理";

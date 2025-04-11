@@ -4,40 +4,80 @@
             <template #header>
                 <div class="management-header">
                     <h2>商品管理</h2>
-                    <el-button type="primary" @click="showAddDialog">新增商品</el-button>
+                    <div class="search-actions">
+                        <el-input 
+                            v-model="searchKeyword" 
+                            placeholder="搜索商品" 
+                            class="search-input"
+                            clearable 
+                            @keyup.enter="handleSearch"
+                        >
+                            <template #append>
+                                <el-button icon="Search" @click="handleSearch"></el-button>
+                            </template>
+                        </el-input>
+                        
+                        <el-dropdown @command="handleFilterCommand" class="price-filter">
+                            <el-button>
+                                價格篩選 <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                            </el-button>
+                            <template #dropdown>
+                                <el-dropdown-menu>
+                                    <el-dropdown-item command="all">全部商品</el-dropdown-item>
+                                    <el-dropdown-item command="low">低價 (< $100)</el-dropdown-item>
+                                    <el-dropdown-item command="medium">中價 ($100 - $500)</el-dropdown-item>
+                                    <el-dropdown-item command="high">高價 (> $500)</el-dropdown-item>
+                                    <el-dropdown-item command="custom">自定義價格</el-dropdown-item>
+                                </el-dropdown-menu>
+                            </template>
+                        </el-dropdown>
+                        
+                        <el-button type="primary" @click="showAddDialog">新增商品</el-button>
+                    </div>
                 </div>
             </template>
 
-            <el-table :data="products" style="width: 100%">
+            <el-table v-loading="loading" :data="products" style="width: 100%">
                 <el-table-column label="商品圖片" width="120">
                     <template #default="{ row }">
-                        <el-image :src="row.imageUrl" fit="cover" class="product-image" />
+                        <el-image 
+                            :src="row.imageUrl || 'https://via.placeholder.com/100x100?text=No+Image'" 
+                            fit="cover" 
+                            class="product-image"
+                            :preview-src-list="[row.imageUrl]"
+                        />
                     </template>
                 </el-table-column>
 
-                <el-table-column prop="name" label="商品名稱" min-width="200" />
+                <el-table-column prop="name" label="商品名稱" min-width="180" />
 
                 <el-table-column prop="price" label="價格" width="120">
                     <template #default="{ row }"> ${{ row.price }} </template>
                 </el-table-column>
 
                 <el-table-column prop="stockQuantity" label="庫存" width="120" />
-
-                <el-table-column label="狀態" width="120">
+                
+                <el-table-column label="描述" min-width="220">
                     <template #default="{ row }">
-                        <el-tag :type="row.enabled ? 'success' : 'info'">
-                            {{ row.enabled ? "上架中" : "已下架" }}
-                        </el-tag>
+                        <el-tooltip 
+                            :content="row.description" 
+                            placement="top" 
+                            :show-after="500"
+                            effect="light"
+                            max-width="300"
+                        >
+                            <div class="description-text">{{ row.description }}</div>
+                        </el-tooltip>
                     </template>
                 </el-table-column>
 
-                <el-table-column label="操作" width="200">
+                <el-table-column label="操作" width="180" fixed="right">
                     <template #default="{ row }">
                         <el-button-group>
-                            <el-button type="primary" :icon="Edit" @click="showEditDialog(row)">
+                            <el-button type="primary" size="small" @click="showEditDialog(row)">
                                 編輯
                             </el-button>
-                            <el-button type="danger" :icon="Delete" @click="handleDelete(row)">
+                            <el-button type="danger" size="small" @click="handleDelete(row)">
                                 刪除
                             </el-button>
                         </el-button-group>
@@ -104,14 +144,6 @@
                     />
                     <div class="el-upload__tip">注意：由於暫無圖片上傳API，請直接輸入圖片URL</div>
                 </el-form-item>
-
-                <el-form-item label="商品狀態" prop="enabled">
-                    <el-switch
-                        v-model="form.enabled"
-                        :active-text="'上架'"
-                        :inactive-text="'下架'"
-                    />
-                </el-form-item>
             </el-form>
 
             <template #footer>
@@ -121,15 +153,42 @@
                 </span>
             </template>
         </el-dialog>
+
+        <!-- 自定義價格範圍對話框 -->
+        <el-dialog v-model="priceRangeDialogVisible" title="自定義價格範圍" width="400px">
+            <el-form :model="priceRangeForm">
+                <el-form-item label="最低價格">
+                    <el-input-number v-model="priceRangeForm.minPrice" :min="0" :precision="2" style="width: 100%" />
+                </el-form-item>
+                <el-form-item label="最高價格">
+                    <el-input-number v-model="priceRangeForm.maxPrice" :min="0" :precision="2" style="width: 100%" />
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="priceRangeDialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click="handlePriceRangeFilter">篩選</el-button>
+                </span>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { Edit, Delete, Plus } from "@element-plus/icons-vue";
+import { Edit, Delete, Plus, ArrowDown, Search } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import axios from "axios";
+import { useAuthStore } from "@/stores/auth";
+import { 
+    getProducts, 
+    createProduct, 
+    updateProduct, 
+    deleteProduct, 
+    searchProducts,
+    getProductsByPriceRange 
+} from "@/api/shop";
 
+const authStore = useAuthStore();
 const products = ref([]);
 const currentPage = ref(1);
 const pageSize = ref(10);
@@ -137,6 +196,13 @@ const total = ref(0);
 const dialogVisible = ref(false);
 const isEdit = ref(false);
 const formRef = ref(null);
+const loading = ref(false);
+const searchKeyword = ref("");
+const priceRangeDialogVisible = ref(false);
+const priceRangeForm = ref({
+    minPrice: 0,
+    maxPrice: 1000
+});
 
 const form = ref({
     name: "",
@@ -144,7 +210,6 @@ const form = ref({
     stockQuantity: 0,
     description: "",
     imageUrl: "",
-    enabled: true,
 });
 
 const rules = {
@@ -152,23 +217,99 @@ const rules = {
     price: [{ required: true, message: "請輸入商品價格", trigger: "blur" }],
     stockQuantity: [{ required: true, message: "請輸入商品庫存", trigger: "blur" }],
     description: [{ required: true, message: "請輸入商品描述", trigger: "blur" }],
-    imageUrl: [{ required: true, message: "請上傳商品圖片", trigger: "change" }],
+    imageUrl: [{ required: true, message: "請輸入商品圖片URL", trigger: "blur" }],
+};
+
+// 檢查是否有管理員權限
+const checkAdminPermission = () => {
+    if (authStore.userRole !== 'admin') {
+        ElMessage.error('只有管理員才能管理商品');
+        return false;
+    }
+    return true;
 };
 
 // 獲取商品列表
 const fetchProducts = async () => {
+    if (!checkAdminPermission()) return;
+    
+    loading.value = true;
     try {
-        // 對接後端API
-        const response = await axios.get("/api/products");
-        if (response.data.status === "success") {
-            products.value = response.data.data;
-            total.value = response.data.data.length; // 如果API未提供總數，則使用當前數組長度
-        } else {
-            ElMessage.error(response.data.message || "獲取商品列表失敗");
-        }
+        const response = await getProducts();
+        products.value = response.data;
+        total.value = response.data.length;
     } catch (error) {
         console.error("獲取商品列表失敗:", error);
         ElMessage.error("獲取商品列表失敗");
+    } finally {
+        loading.value = false;
+    }
+};
+
+// 處理搜索
+const handleSearch = async () => {
+    if (!checkAdminPermission()) return;
+    
+    if (!searchKeyword.value.trim()) {
+        return fetchProducts();
+    }
+    
+    loading.value = true;
+    try {
+        const response = await searchProducts(searchKeyword.value);
+        products.value = response.data;
+        total.value = response.data.length;
+    } catch (error) {
+        console.error("搜索商品失敗:", error);
+        ElMessage.error("搜索商品失敗");
+    } finally {
+        loading.value = false;
+    }
+};
+
+// 處理價格篩選
+const handleFilterCommand = (command) => {
+    if (command === 'custom') {
+        priceRangeDialogVisible.value = true;
+        return;
+    }
+    
+    switch(command) {
+        case 'all':
+            fetchProducts();
+            break;
+        case 'low':
+            filterByPriceRange(0, 100);
+            break;
+        case 'medium':
+            filterByPriceRange(100, 500);
+            break;
+        case 'high':
+            filterByPriceRange(500, 100000);
+            break;
+    }
+};
+
+// 自定義價格範圍篩選
+const handlePriceRangeFilter = () => {
+    filterByPriceRange(priceRangeForm.value.minPrice, priceRangeForm.value.maxPrice);
+    priceRangeDialogVisible.value = false;
+};
+
+// 按價格範圍過濾
+const filterByPriceRange = async (minPrice, maxPrice) => {
+    if (!checkAdminPermission()) return;
+    
+    loading.value = true;
+    try {
+        const response = await getProductsByPriceRange(minPrice, maxPrice);
+        products.value = response.data;
+        total.value = response.data.length;
+    } catch (error) {
+        console.error("按價格過濾商品失敗:", error);
+        ElMessage.error("按價格過濾商品失敗");
+    } finally {
+        loading.value = false;
     }
 };
 
@@ -186,6 +327,8 @@ const handleCurrentChange = (val) => {
 
 // 顯示新增對話框
 const showAddDialog = () => {
+    if (!checkAdminPermission()) return;
+    
     isEdit.value = false;
     form.value = {
         name: "",
@@ -193,13 +336,14 @@ const showAddDialog = () => {
         stockQuantity: 0,
         description: "",
         imageUrl: "",
-        enabled: true,
     };
     dialogVisible.value = true;
 };
 
 // 顯示編輯對話框
 const showEditDialog = (row) => {
+    if (!checkAdminPermission()) return;
+    
     isEdit.value = true;
     form.value = { ...row };
     dialogVisible.value = true;
@@ -207,6 +351,8 @@ const showEditDialog = (row) => {
 
 // 處理刪除
 const handleDelete = async (row) => {
+    if (!checkAdminPermission()) return;
+    
     try {
         await ElMessageBox.confirm("確定要刪除此商品嗎？", "提示", {
             confirmButtonText: "確定",
@@ -214,42 +360,44 @@ const handleDelete = async (row) => {
             type: "warning",
         });
 
-        await axios.delete(`/api/products/${row.id}`);
+        loading.value = true;
+        await deleteProduct(row.id);
         ElMessage.success("刪除成功");
         fetchProducts();
     } catch (error) {
         if (error !== "cancel") {
+            console.error("刪除失敗:", error);
             ElMessage.error("刪除失敗");
         }
+    } finally {
+        loading.value = false;
     }
 };
 
 // 處理表單提交
 const handleSubmit = async () => {
+    if (!checkAdminPermission()) return;
     if (!formRef.value) return;
 
     await formRef.value.validate(async (valid) => {
         if (valid) {
             try {
+                loading.value = true;
                 let response;
                 if (isEdit.value) {
-                    response = await axios.put(`/api/products/${form.value.id}`, form.value);
+                    response = await updateProduct(form.value.id, form.value);
+                    ElMessage.success("更新成功");
                 } else {
-                    response = await axios.post("/api/products", form.value);
+                    response = await createProduct(form.value);
+                    ElMessage.success("新增成功");
                 }
-
-                if (response.data.status === "success") {
-                    ElMessage.success(isEdit.value ? "更新成功" : "新增成功");
-                    dialogVisible.value = false;
-                    fetchProducts();
-                } else {
-                    ElMessage.error(
-                        response.data.message || (isEdit.value ? "更新失敗" : "新增失敗")
-                    );
-                }
+                dialogVisible.value = false;
+                fetchProducts();
             } catch (error) {
                 console.error(isEdit.value ? "更新失敗" : "新增失敗", error);
                 ElMessage.error(isEdit.value ? "更新失敗" : "新增失敗");
+            } finally {
+                loading.value = false;
             }
         }
     });
@@ -261,20 +409,14 @@ const beforeUpload = (file) => {
     return false; // 阻止上傳
 };
 
-// 上傳成功回調 - 由於沒有上傳API，此函數可能不會被調用
+// 上傳成功回調
 const handleUploadSuccess = (response) => {
     ElMessage.warning("當前系統暫不支持圖片上傳，請直接輸入圖片URL");
-    /* 
-    if (response.status === 'success') {
-        form.value.imageUrl = response.data.url;
-        ElMessage.success("上傳成功");
-    } else {
-        ElMessage.error(response.message || "上傳失敗");
-    }
-    */
 };
 
-onMounted(fetchProducts);
+onMounted(() => {
+    fetchProducts();
+});
 </script>
 
 <style scoped>
@@ -293,10 +435,32 @@ onMounted(fetchProducts);
     align-items: center;
 }
 
+.search-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-input {
+    width: 250px;
+}
+
+.price-filter {
+    margin-right: 10px;
+}
+
 .product-image {
     width: 60px;
     height: 60px;
     border-radius: 4px;
+    object-fit: cover;
+}
+
+.description-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 220px;
 }
 
 .pagination {
@@ -336,5 +500,9 @@ onMounted(fetchProducts);
 :deep(.el-upload) {
     width: 100%;
     height: 100%;
+}
+
+.mt-10 {
+    margin-top: 10px;
 }
 </style>
