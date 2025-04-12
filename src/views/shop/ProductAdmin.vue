@@ -1,9 +1,9 @@
 <template>
-    <div class="product-management">
-        <el-card class="management-container">
+    <div class="product-admin">
+        <el-card class="admin-container">
             <template #header>
-                <div class="management-header">
-                    <h2>商品管理</h2>
+                <div class="admin-header">
+                    <h2>商品管理後台</h2>
                     <div class="search-actions">
                         <el-input 
                             v-model="searchKeyword" 
@@ -72,7 +72,7 @@
                     <el-table-column prop="name" label="商品名稱" min-width="180" />
 
                     <el-table-column prop="price" label="價格" width="120">
-                        <template #default="{ row }"> ${{ row.price }} </template>
+                        <template #default="{ row }"> ${{ Math.floor(row.price) }} </template>
                     </el-table-column>
 
                     <el-table-column prop="stockQuantity" label="庫存" width="120">
@@ -109,17 +109,6 @@
                     <el-table-column label="操作" width="220" fixed="right">
                         <template #default="{ row }">
                             <div class="table-actions">
-                                <el-tooltip content="查看" placement="top">
-                                    <el-button 
-                                        type="primary" 
-                                        circle 
-                                        size="large"
-                                        @click="$router.push(`/shop/products/${row.id}`)"
-                                    >
-                                        <el-icon class="action-icon"><View /></el-icon>
-                                    </el-button>
-                                </el-tooltip>
-                                
                                 <el-tooltip content="編輯" placement="top">
                                     <el-button 
                                         type="warning" 
@@ -128,6 +117,17 @@
                                         @click="showEditDialog(row)"
                                     >
                                         <el-icon class="action-icon"><Tools /></el-icon>
+                                    </el-button>
+                                </el-tooltip>
+                                
+                                <el-tooltip content="查看" placement="top">
+                                    <el-button 
+                                        type="primary" 
+                                        circle 
+                                        size="large"
+                                        @click="viewProductDetail(row.id)"
+                                    >
+                                        <el-icon class="action-icon"><View /></el-icon>
                                     </el-button>
                                 </el-tooltip>
                                 
@@ -161,7 +161,7 @@
         </el-card>
 
         <!-- 新增/編輯商品對話框 -->
-        <el-dialog v-model="dialogVisible" :title="isEdit ? '編輯商品' : '添加商品'" width="600px">
+        <el-dialog v-model="dialogVisible" :title="isEdit ? '編輯商品' : '新增商品'" width="500px">
             <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
                 <el-form-item label="商品名稱" prop="name">
                     <el-input v-model="form.name" />
@@ -186,32 +186,33 @@
 
                 <el-form-item label="商品圖片" prop="imageUrl">
                     <el-upload
-                        class="avatar-uploader"
+                        class="image-upload"
                         action="#"
-                        :http-request="uploadImage"
+                        :auto-upload="false"
                         :show-file-list="false"
-                        :on-success="handleUploadSuccess"
-                        :before-upload="beforeUpload"
+                        :on-change="(file) => beforeUpload(file.raw)"
                     >
                         <img v-if="form.imageUrl" :src="form.imageUrl" class="preview-image" />
-                        <div v-else class="image-upload">
-                            <el-icon class="upload-icon"><Plus /></el-icon>
-                            <div>點擊上傳</div>
+                        <div v-else>
+                            <el-icon class="upload-icon"><Upload /></el-icon>
+                            <div class="el-upload__text">點擊上傳圖片或輸入URL</div>
                         </div>
                     </el-upload>
-                    <el-input
-                        v-model="form.imageUrl"
-                        placeholder="或直接輸入圖片URL"
-                        class="mt-10"
-                    />
-                    <div class="el-upload__tip">支持點擊上傳圖片或直接輸入圖片URL</div>
+                    <div class="upload-info">
+                        <el-input
+                            v-model="form.imageUrl"
+                            placeholder="或直接輸入圖片URL"
+                            class="mt-10"
+                        />
+                        <div class="el-upload__tip">支持上傳本地圖片或輸入圖片URL</div>
+                    </div>
                 </el-form-item>
             </el-form>
 
             <template #footer>
                 <span class="dialog-footer">
                     <el-button @click="dialogVisible = false">取消</el-button>
-                    <el-button type="primary" @click="handleSubmit"> 確定 </el-button>
+                    <el-button type="primary" @click="handleSubmit">確定</el-button>
                 </span>
             </template>
         </el-dialog>
@@ -239,7 +240,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from 'vue-router';
-import { Edit, Delete, Plus, ArrowDown, Search, View, Tools, CircleClose, InfoFilled } from "@element-plus/icons-vue";
+import { Edit, Delete, Plus, ArrowDown, Search, Upload, View, Tools, CircleClose, InfoFilled } from "@element-plus/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useAuthStore } from "@/stores/auth";
 import { 
@@ -248,9 +249,9 @@ import {
     updateProduct, 
     deleteProduct, 
     searchProducts,
-    getProductsByPriceRange,
-    uploadImage as uploadImageApi
+    getProductsByPriceRange 
 } from "@/api/shop";
+import { uploadLocalImage } from "@/utils/imageUpload";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -269,7 +270,7 @@ const priceRangeForm = ref({
     maxPrice: 1000
 });
 
-// 在 script setup 中添加當前篩選條件的狀態
+// 當前篩選條件
 const currentPriceFilter = ref({
     active: false,
     minPrice: 0,
@@ -303,9 +304,21 @@ const fetchProducts = async () => {
     
     loading.value = true;
     try {
-        const response = await getProducts();
-        products.value = response.data;
-        total.value = response.data.length;
+        const params = {
+            page: currentPage.value,
+            size: pageSize.value
+        };
+        
+        const response = await getProducts(params);
+        
+        // 假設API返回的是完整數據，前端根據分頁參數處理
+        const allProducts = response.data || [];
+        total.value = allProducts.length;
+        
+        // 手動實現分頁邏輯
+        const startIndex = (currentPage.value - 1) * pageSize.value;
+        const endIndex = startIndex + pageSize.value;
+        products.value = allProducts.slice(startIndex, endIndex);
     } catch (error) {
         console.error("獲取商品列表失敗:", error);
         ElMessage.error("獲取商品列表失敗");
@@ -314,7 +327,7 @@ const fetchProducts = async () => {
     }
 };
 
-// 修改處理搜索函數
+// 處理搜索
 const handleSearch = async () => {
     if (!isAdmin.value) return;
     
@@ -349,7 +362,7 @@ const handleSearch = async () => {
     }
 };
 
-// 修改處理價格篩選命令函數
+// 處理價格篩選
 const handleFilterCommand = (command) => {
     if (command === 'custom') {
         priceRangeDialogVisible.value = true;
@@ -387,7 +400,7 @@ const handleFilterCommand = (command) => {
     handleSearch();
 };
 
-// 修改自定義價格範圍篩選函數
+// 自定義價格範圍篩選
 const handlePriceRangeFilter = () => {
     currentPriceFilter.value = {
         active: true,
@@ -401,13 +414,12 @@ const handlePriceRangeFilter = () => {
     handleSearch();
 };
 
-// 處理分頁大小變化
+// 處理分頁
 const handleSizeChange = (val) => {
     pageSize.value = val;
     fetchProducts();
 };
 
-// 處理頁碼變化
 const handleCurrentChange = (val) => {
     currentPage.value = val;
     fetchProducts();
@@ -437,6 +449,11 @@ const showEditDialog = (row) => {
     dialogVisible.value = true;
 };
 
+// 查看商品詳情
+const viewProductDetail = (id) => {
+    router.push(`/shop/products/${id}`);
+};
+
 // 處理刪除
 const handleDelete = async (row) => {
     if (!isAdmin.value) return;
@@ -464,59 +481,26 @@ const handleDelete = async (row) => {
 
 // 處理表單提交
 const handleSubmit = async () => {
+    if (!isAdmin.value) return;
     if (!formRef.value) return;
-    
+
     await formRef.value.validate(async (valid) => {
         if (valid) {
             try {
                 loading.value = true;
-                
-                // 表單資料準備好後再提交
-                const submitForm = async () => {
-                    const productData = { ...form.value };
-                    
-                    if (isEdit.value) {
-                        await updateProduct(form.value.id, productData);
-                        ElMessage.success("商品更新成功");
-                    } else {
-                        await createProduct(productData);
-                        ElMessage.success("商品添加成功");
-                    }
-                    
-                    dialogVisible.value = false;
-                    resetForm();
-                    fetchProducts();
-                };
-                
-                // 如果圖片是 base64 格式且以 data:image 開頭，則先上傳圖片
-                if (form.value.imageUrl && form.value.imageUrl.startsWith('data:image')) {
-                    try {
-                        // 將 base64 轉換為文件對象
-                        const base64Data = form.value.imageUrl.split(',')[1];
-                        const blob = base64ToBlob(base64Data, 'image/jpeg');
-                        const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
-                        
-                        // 創建 FormData 對象
-                        const formData = new FormData();
-                        formData.append('file', file);
-                        
-                        // 上傳圖片
-                        const response = await uploadImageApi(formData);
-                        
-                        // 更新表單中的圖片 URL
-                        form.value.imageUrl = response.data;
-                        ElMessage.success('圖片上傳成功');
-                    } catch (error) {
-                        console.error('圖片上傳失敗:', error);
-                        ElMessage.warning('圖片上傳失敗，將直接使用base64格式');
-                    }
+                let response;
+                if (isEdit.value) {
+                    response = await updateProduct(form.value.id, form.value);
+                    ElMessage.success("更新成功");
+                } else {
+                    response = await createProduct(form.value);
+                    ElMessage.success("新增成功");
                 }
-                
-                // 提交表單
-                await submitForm();
+                dialogVisible.value = false;
+                fetchProducts();
             } catch (error) {
-                console.error("提交失敗:", error);
-                ElMessage.error("提交失敗: " + (error.response?.data?.message || '未知錯誤'));
+                console.error(isEdit.value ? "更新失敗" : "新增失敗", error);
+                ElMessage.error(isEdit.value ? "更新失敗" : "新增失敗");
             } finally {
                 loading.value = false;
             }
@@ -524,81 +508,50 @@ const handleSubmit = async () => {
     });
 };
 
-// base64 轉 Blob 工具函數
-const base64ToBlob = (base64, mimeType) => {
-    const byteCharacters = atob(base64);
-    const byteArrays = [];
-    
-    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-        const slice = byteCharacters.slice(offset, offset + 512);
-        
-        const byteNumbers = new Array(slice.length);
-        for (let i = 0; i < slice.length; i++) {
-            byteNumbers[i] = slice.charCodeAt(i);
-        }
-        
-        const byteArray = new Uint8Array(byteNumbers);
-        byteArrays.push(byteArray);
-    }
-    
-    return new Blob(byteArrays, { type: mimeType });
-};
-
-// 圖片上傳前的驗證
+// 上傳前驗證
 const beforeUpload = (file) => {
+    // 檢查文件類型
     const isImage = file.type.startsWith('image/');
-    const isSizeValid = file.size / 1024 / 1024 < 5;
-
     if (!isImage) {
         ElMessage.error('只能上傳圖片文件!');
         return false;
     }
-    if (!isSizeValid) {
+    
+    // 檢查文件大小（最大5MB）
+    const isLt5M = file.size / 1024 / 1024 < 5;
+    if (!isLt5M) {
         ElMessage.error('圖片大小不能超過5MB!');
         return false;
     }
-    return true;
+    
+    // 處理上傳
+    handleLocalImageUpload(file);
+    return false; // 阻止默認上傳行為
 };
 
-// 處理圖片上傳
-const uploadImage = async (options) => {
+// 處理本地圖片上傳
+const handleLocalImageUpload = async (file) => {
     try {
-        const formData = new FormData();
-        formData.append('file', options.file);
-        
-        const response = await uploadImageApi(formData);
-        form.value.imageUrl = response.data;
-        
-        options.onSuccess(response.data);
+        loading.value = true;
+        const result = await uploadLocalImage(file);
+        form.value.imageUrl = result.imageUrl;
         ElMessage.success('圖片上傳成功');
     } catch (error) {
-        options.onError(error);
-        ElMessage.error('圖片上傳失敗');
+        console.error('圖片上傳失敗:', error);
+        ElMessage.error(`圖片上傳失敗: ${error.message}`);
+    } finally {
+        loading.value = false;
     }
 };
 
-// 上傳成功處理
+// 上傳成功回調 (這個已不需要了，但保留以避免錯誤)
 const handleUploadSuccess = (response) => {
-    // 直接使用response作為URL
-    form.value.imageUrl = response;
-};
-
-// 重置表單
-const resetForm = () => {
-    form.value = {
-        name: "",
-        price: 0,
-        stockQuantity: 0,
-        description: "",
-        imageUrl: "",
-    };
-    if (formRef.value) {
-        formRef.value.resetFields();
-    }
+    // 在實際項目中，這裡會使用後端返回的URL
+    // 在我們的模擬情況下，不會用到這個函數
 };
 
 onMounted(() => {
-    if (!authStore.isLoggedIn) {
+    if (!authStore.isAuthenticated) {
         ElMessage.warning('請先登入');
         router.push('/member/login');
         return;
@@ -614,16 +567,16 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.product-management {
+.product-admin {
     padding: 20px;
 }
 
-.management-container {
+.admin-container {
     max-width: 1200px;
     margin: 0 auto;
 }
 
-.management-header {
+.admin-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -665,66 +618,29 @@ onMounted(() => {
     font-size: 18px;
 }
 
-.product-image {
-    width: 60px;
-    height: 60px;
-    border-radius: 4px;
-    object-fit: cover;
-}
-
-.description-text {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 220px;
+.bold-text {
+    font-weight: bold;
 }
 
 .pagination {
     margin-top: 20px;
     display: flex;
-    justify-content: flex-end;
-}
-
-.image-upload {
-    border: 1px dashed #d9d9d9;
-    border-radius: 6px;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    width: 148px;
-    height: 148px;
-    display: flex;
     justify-content: center;
-    align-items: center;
 }
 
-.image-upload:hover {
-    border-color: #409eff;
-}
-
-.preview-image {
-    width: 100%;
-    height: 100%;
+.product-image {
+    width: 80px;
+    height: 80px;
     object-fit: cover;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
-.upload-icon {
-    font-size: 28px;
-    color: #8c939d;
-}
-
-:deep(.el-upload) {
-    width: 100%;
-    height: 100%;
-}
-
-.mt-10 {
-    margin-top: 10px;
-}
-
-.access-denied {
-    padding: 40px 20px;
-    text-align: center;
+.description-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
 }
 
 .low-stock {
@@ -732,7 +648,56 @@ onMounted(() => {
     font-weight: bold;
 }
 
-.bold-text {
-    font-weight: bold;
+.image-upload {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 150px;
+    border: 1px dashed #dcdfe6;
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 10px;
 }
-</style>
+
+.upload-icon {
+    font-size: 28px;
+    color: #8c939d;
+    width: 28px;
+    height: 28px;
+}
+
+.preview-image {
+    width: 100%;
+    max-height: 148px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.el-upload__text {
+    color: #606266;
+    font-size: 14px;
+    text-align: center;
+    margin: 10px 0;
+}
+
+.el-upload__tip {
+    font-size: 12px;
+    color: #606266;
+    margin-top: 5px;
+}
+
+.mt-10 {
+    margin-top: 10px;
+}
+
+.access-denied {
+    padding: 30px 0;
+}
+
+.upload-info {
+    margin-top: 10px;
+}
+</style> 

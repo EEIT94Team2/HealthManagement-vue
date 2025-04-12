@@ -1,337 +1,363 @@
 <template>
-    <div class="order-detail">
-        <el-card class="detail-container">
-            <template #header>
-                <div class="detail-header">
-                    <h2>訂單詳情</h2>
-                    <el-button @click="$router.back()">返回</el-button>
+  <div class="order-detail">
+    <el-card class="detail-container" v-loading="loading">
+      <template #header>
+        <div class="detail-header">
+          <h2>訂單詳情</h2>
+          <div class="header-actions">
+            <el-button @click="$router.push('/shop/orders')">返回訂單列表</el-button>
+          </div>
+        </div>
+      </template>
+      
+      <div v-if="order" class="order-content">
+        <div class="order-info-card">
+          <div class="order-info-header">
+            <h3>訂單信息</h3>
+            <el-tag :type="getStatusType(order.status)">
+              {{ getStatusLabel(order.status) }}
+            </el-tag>
+          </div>
+          
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="訂單編號">{{ order.id }}</el-descriptions-item>
+            <el-descriptions-item label="下單時間">{{ formatDate(order.createdAt) }}</el-descriptions-item>
+            <el-descriptions-item label="訂單金額">${{ order.totalAmount }}</el-descriptions-item>
+            <el-descriptions-item label="支付方式">{{ order.paymentMethod || '未支付' }}</el-descriptions-item>
+            <el-descriptions-item label="用戶" v-if="isAdmin">{{ order.userName }}</el-descriptions-item>
+            <el-descriptions-item label="聯繫方式" v-if="order.contactInfo">{{ order.contactInfo }}</el-descriptions-item>
+            <el-descriptions-item label="備註" :span="2" v-if="order.note">{{ order.note }}</el-descriptions-item>
+          </el-descriptions>
+          
+          <div class="order-actions" v-if="order.status === 'PENDING_PAYMENT'">
+            <el-button type="primary" @click="goToPayment">去支付</el-button>
+            <el-button type="danger" @click="cancelOrder">取消訂單</el-button>
+          </div>
+        </div>
+        
+        <div class="order-items-card">
+          <h3>訂單商品</h3>
+          <el-table :data="order.items || []" style="width: 100%">
+            <el-table-column label="商品圖片" width="100">
+              <template #default="{ row }">
+                <el-image 
+                  :src="row.product.imageUrl || 'https://via.placeholder.com/80x80?text=No+Image'" 
+                  fit="cover"
+                  class="product-image"
+                  @click="viewProduct(row.product.id)"
+                />
+              </template>
+            </el-table-column>
+            
+            <el-table-column prop="product.name" label="商品名稱" min-width="200">
+              <template #default="{ row }">
+                <div class="product-name" @click="viewProduct(row.product.id)">
+                  {{ row.product.name }}
                 </div>
-            </template>
-
-            <div v-if="loading" class="loading">
-                <el-skeleton :rows="10" animated />
+              </template>
+            </el-table-column>
+            
+            <el-table-column prop="price" label="單價" width="120">
+              <template #default="{ row }">
+                ${{ row.price }}
+              </template>
+            </el-table-column>
+            
+            <el-table-column prop="quantity" label="數量" width="80" />
+            
+            <el-table-column label="小計" width="120">
+              <template #default="{ row }">
+                ${{ (row.price * row.quantity).toFixed(2) }}
+              </template>
+            </el-table-column>
+          </el-table>
+          
+          <div class="order-summary">
+            <div class="order-total">
+              <div>商品總額: <span>${{ order.totalAmount }}</span></div>
+              <div>運費: <span>$0.00</span></div>
+              <div class="final-total">實付金額: <span>${{ order.totalAmount }}</span></div>
             </div>
-
-            <div v-else-if="!order" class="not-found">
-                <el-empty description="訂單不存在">
-                    <el-button type="primary" @click="$router.push('/shop/orders')">
-                        返回訂單列表
-                    </el-button>
-                </el-empty>
-            </div>
-
-            <div v-else class="order-info">
-                <div class="info-section">
-                    <h3>訂單信息</h3>
-                    <el-descriptions :column="2" border>
-                        <el-descriptions-item label="訂單編號">
-                            {{ order.id }}
-                        </el-descriptions-item>
-                        <el-descriptions-item label="訂單狀態">
-                            <el-tag :type="getStatusType(order.status)">
-                                {{ getStatusText(order.status) }}
-                            </el-tag>
-                        </el-descriptions-item>
-                        <el-descriptions-item label="下單時間">
-                            {{ formatDate(order.createdTime) }}
-                        </el-descriptions-item>
-                        <el-descriptions-item label="總金額">
-                            ${{ order.totalAmount }}
-                        </el-descriptions-item>
-                    </el-descriptions>
-                </div>
-
-                <div class="info-section">
-                    <h3>商品信息</h3>
-                    <el-table :data="order.items" style="width: 100%">
-                        <el-table-column label="商品" min-width="400">
-                            <template #default="{ row }">
-                                <div class="product-info">
-                                    <el-image
-                                        :src="
-                                            row.product.imageUrl || 'https://via.placeholder.com/80'
-                                        "
-                                        fit="cover"
-                                        class="product-image"
-                                    />
-                                    <div class="product-details">
-                                        <h4>{{ row.product.name }}</h4>
-                                        <p class="price">${{ row.product.price }}</p>
-                                    </div>
-                                </div>
-                            </template>
-                        </el-table-column>
-
-                        <el-table-column prop="quantity" label="數量" width="120" />
-
-                        <el-table-column label="小計" width="150">
-                            <template #default="{ row }"> ${{ calculateSubtotal(row) }} </template>
-                        </el-table-column>
-                    </el-table>
-                </div>
-
-                <div v-if="order.shippingInfo" class="info-section">
-                    <h3>收貨信息</h3>
-                    <el-descriptions :column="1" border>
-                        <el-descriptions-item label="收貨人">
-                            {{ order.shippingInfo.recipientName }}
-                        </el-descriptions-item>
-                        <el-descriptions-item label="聯繫電話">
-                            {{ order.shippingInfo.phone }}
-                        </el-descriptions-item>
-                        <el-descriptions-item label="收貨地址">
-                            {{ order.shippingInfo.address }}
-                        </el-descriptions-item>
-                        <el-descriptions-item label="備註">
-                            {{ order.shippingInfo.notes || "無" }}
-                        </el-descriptions-item>
-                    </el-descriptions>
-                </div>
-
-                <div v-if="order.paymentInfo" class="info-section">
-                    <h3>支付信息</h3>
-                    <el-descriptions :column="1" border>
-                        <el-descriptions-item label="支付方式">
-                            {{ getPaymentMethodText(order.paymentInfo.paymentMethod) }}
-                        </el-descriptions-item>
-                        <el-descriptions-item label="支付狀態">
-                            <el-tag :type="getPaymentStatusType(order.paymentInfo.status)">
-                                {{ getPaymentStatusText(order.paymentInfo.status) }}
-                            </el-tag>
-                        </el-descriptions-item>
-                        <el-descriptions-item v-if="order.paymentInfo.paymentTime" label="支付時間">
-                            {{ formatDate(order.paymentInfo.paymentTime) }}
-                        </el-descriptions-item>
-                    </el-descriptions>
-                </div>
-
-                <div class="actions">
-                    <el-button
-                        v-if="order.status === 'PENDING_PAYMENT'"
-                        type="primary"
-                        @click="handlePayment"
-                    >
-                        去支付
-                    </el-button>
-                    <el-button
-                        v-if="order.status === 'PENDING_PAYMENT'"
-                        type="danger"
-                        @click="cancelOrder"
-                    >
-                        取消訂單
-                    </el-button>
-                </div>
-            </div>
-        </el-card>
-    </div>
+          </div>
+        </div>
+        
+        <div class="order-payment-card" v-if="order.payment">
+          <h3>支付信息</h3>
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="支付編號">{{ order.payment.id }}</el-descriptions-item>
+            <el-descriptions-item label="支付時間">{{ formatDate(order.payment.paidAt) }}</el-descriptions-item>
+            <el-descriptions-item label="支付方式">{{ order.payment.method }}</el-descriptions-item>
+            <el-descriptions-item label="支付金額">${{ order.payment.amount }}</el-descriptions-item>
+            <el-descriptions-item label="交易狀態">
+              <el-tag :type="getPaymentStatusType(order.payment.status)">
+                {{ getPaymentStatusLabel(order.payment.status) }}
+              </el-tag>
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
+      </div>
+      
+      <el-empty v-else-if="!loading" description="訂單不存在或已被刪除"></el-empty>
+    </el-card>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { ElMessage, ElMessageBox } from "element-plus";
-import axios from "axios";
+import { ref, computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { useAuthStore } from '@/stores/auth';
+import { getOrderById } from '@/api/shop';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
+const orderId = ref(parseInt(route.params.id));
 const order = ref(null);
-const loading = ref(true);
-const orderId = route.params.id;
+const loading = ref(false);
 
-// 移除用戶ID硬編碼
-// const userId = 1;
+// 检查是否为管理员
+const isAdmin = computed(() => {
+  return authStore.userRole === 'admin';
+});
 
-// 獲取訂單詳情
-const fetchOrderDetail = async () => {
-    loading.value = true;
-    try {
-        const response = await axios.get(`/api/order/${orderId}`);
-        if (response.data.status === "success") {
-            order.value = response.data.data;
-        } else {
-            ElMessage.error(response.data.message || "獲取訂單詳情失敗");
-        }
-    } catch (error) {
-        console.error("獲取訂單詳情失敗:", error);
-        ElMessage.error("獲取訂單詳情失敗");
-    } finally {
-        loading.value = false;
-    }
+// 根据状态获取标签类型
+const getStatusType = (status) => {
+  switch (status) {
+    case 'PENDING_PAYMENT':
+      return 'warning';
+    case 'PAID':
+      return 'success';
+    case 'CANCELLED':
+      return 'info';
+    case 'COMPLETED':
+      return 'primary';
+    default:
+      return '';
+  }
 };
 
-// 前往支付
-const handlePayment = () => {
-    router.push(`/shop/payment/${orderId}`);
+// 获取状态显示文本
+const getStatusLabel = (status) => {
+  switch (status) {
+    case 'PENDING_PAYMENT':
+      return '待支付';
+    case 'PAID':
+      return '已支付';
+    case 'CANCELLED':
+      return '已取消';
+    case 'COMPLETED':
+      return '已完成';
+    default:
+      return status;
+  }
 };
 
-// 取消訂單 - 注意：API中沒有明確的取消訂單端點，可能需要調整
-const cancelOrder = async () => {
-    try {
-        await ElMessageBox.confirm("確定要取消此訂單嗎？", "提示", {
-            confirmButtonText: "確定",
-            cancelButtonText: "取消",
-            type: "warning",
-        });
-
-        // 注意：以下API在您的列表中沒有列出
-        // 可能需要使用其他方式取消訂單或聯繫後端添加此API
-        ElMessage.warning("訂單取消功能暫不可用，請聯繫客服");
-
-        /* 
-        await axios.post(`/api/order/${orderId}/cancel`);
-        ElMessage.success("訂單已取消");
-        fetchOrderDetail();
-        */
-    } catch (error) {
-        if (error !== "cancel") {
-            console.error("取消訂單失敗:", error);
-            ElMessage.error("取消訂單失敗");
-        }
-    }
+// 获取支付状态标签类型
+const getPaymentStatusType = (status) => {
+  switch (status) {
+    case 'PENDING':
+      return 'warning';
+    case 'SUCCESS':
+      return 'success';
+    case 'FAILED':
+      return 'danger';
+    default:
+      return 'info';
+  }
 };
 
-// 計算小計
-const calculateSubtotal = (item) => {
-    return (item.product.price * item.quantity).toFixed(2);
+// 获取支付状态显示文本
+const getPaymentStatusLabel = (status) => {
+  switch (status) {
+    case 'PENDING':
+      return '處理中';
+    case 'SUCCESS':
+      return '成功';
+    case 'FAILED':
+      return '失敗';
+    default:
+      return status;
+  }
 };
 
 // 格式化日期
 const formatDate = (dateString) => {
-    if (!dateString) return "";
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+};
 
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleString("zh-TW", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    } catch (e) {
-        return dateString;
+// 获取订单详情
+const fetchOrderDetail = async () => {
+  if (!authStore.isAuthenticated) {
+    ElMessage.warning('請先登入');
+    router.push('/member/login');
+    return;
+  }
+  
+  loading.value = true;
+  try {
+    const response = await getOrderById(orderId.value);
+    
+    // 检查权限
+    if (!isAdmin.value && response.data.userId !== authStore.userId) {
+      ElMessage.error('您無權查看該訂單');
+      router.push('/shop/orders');
+      return;
     }
-};
-
-// 獲取訂單狀態標籤類型
-const getStatusType = (status) => {
-    const types = {
-        PENDING_PAYMENT: "warning",
-        PAID: "success",
-        PROCESSING: "primary",
-        SHIPPED: "info",
-        DELIVERED: "success",
-        CANCELLED: "danger",
+    
+    order.value = {
+      ...response.data,
+      userName: response.data.user ? response.data.user.name : '未知用戶'
     };
-    return types[status] || "info";
+  } catch (error) {
+    console.error('獲取訂單詳情失敗:', error);
+    ElMessage.error('獲取訂單詳情失敗');
+  } finally {
+    loading.value = false;
+  }
 };
 
-// 獲取訂單狀態文字
-const getStatusText = (status) => {
-    const texts = {
-        PENDING_PAYMENT: "待付款",
-        PAID: "已付款",
-        PROCESSING: "處理中",
-        SHIPPED: "已發貨",
-        DELIVERED: "已送達",
-        CANCELLED: "已取消",
-    };
-    return texts[status] || status;
+// 查看商品
+const viewProduct = (productId) => {
+  router.push(`/shop/products/${productId}`);
 };
 
-// 獲取支付方式文字
-const getPaymentMethodText = (method) => {
-    const methods = {
-        CREDIT_CARD: "信用卡",
-        CASH_ON_DELIVERY: "貨到付款",
-        BANK_TRANSFER: "銀行轉賬",
-    };
-    return methods[method] || method;
+// 去支付
+const goToPayment = () => {
+  if (!order.value || order.value.status !== 'PENDING_PAYMENT') {
+    ElMessage.warning('當前訂單狀態不支持支付');
+    return;
+  }
+  
+  // 跳轉到支付頁面
+  router.push({
+    path: '/shop/checkout',
+    query: { orderId: order.value.id }
+  });
 };
 
-// 獲取支付狀態標籤類型
-const getPaymentStatusType = (status) => {
-    const types = {
-        PENDING: "warning",
-        PAID: "success",
-        FAILED: "danger",
-        REFUNDED: "info",
-    };
-    return types[status] || "info";
+// 取消訂單
+const cancelOrder = async () => {
+  try {
+    await ElMessageBox.confirm('確定要取消此訂單嗎？', '提示', {
+      confirmButtonText: '確定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+    
+    // 實現取消訂單的API調用
+    // 這裡需要後端提供取消訂單的API
+    ElMessage.success('訂單已取消');
+    fetchOrderDetail(); // 重新獲取訂單信息
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('取消訂單失敗:', error);
+      ElMessage.error('取消訂單失敗');
+    }
+  }
 };
 
-// 獲取支付狀態文字
-const getPaymentStatusText = (status) => {
-    const texts = {
-        PENDING: "待支付",
-        PAID: "已支付",
-        FAILED: "支付失敗",
-        REFUNDED: "已退款",
-    };
-    return texts[status] || status;
-};
-
-onMounted(fetchOrderDetail);
+onMounted(() => {
+  if (!authStore.isAuthenticated) {
+    ElMessage.warning('請先登入');
+    router.push('/member/login');
+    return;
+  }
+  fetchOrderDetail();
+});
 </script>
 
 <style scoped>
 .order-detail {
-    padding: 20px;
+  padding: 20px;
 }
 
 .detail-container {
-    max-width: 1200px;
-    margin: 0 auto;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 .detail-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.loading,
-.not-found {
-    padding: 40px 0;
+.order-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.info-section {
-    margin-bottom: 30px;
+.order-info-card,
+.order-items-card,
+.order-payment-card {
+  padding: 20px;
+  background-color: #f8f8f8;
+  border-radius: 4px;
 }
 
-.info-section h3 {
-    margin-bottom: 20px;
-    font-size: 18px;
-    font-weight: bold;
+.order-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
 }
 
-.product-info {
-    display: flex;
-    align-items: center;
-    gap: 20px;
+.order-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .product-image {
-    width: 80px;
-    height: 80px;
-    border-radius: 4px;
+  width: 60px;
+  height: 60px;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
-.product-details h4 {
-    margin: 0 0 8px;
-    font-size: 16px;
+.product-name {
+  cursor: pointer;
+  color: #409EFF;
 }
 
-.price {
-    color: #f56c6c;
-    margin: 0;
-    font-weight: bold;
+.product-name:hover {
+  text-decoration: underline;
 }
 
-.actions {
-    margin-top: 30px;
-    display: flex;
-    justify-content: flex-end;
-    gap: 15px;
+.order-summary {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.order-total {
+  width: 300px;
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.order-total div {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.order-total .final-total {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.final-total span {
+  color: #f56c6c;
 }
 </style>
