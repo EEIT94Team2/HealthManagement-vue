@@ -85,6 +85,15 @@ export const getPaymentStatus = (paymentId) => {
   return axios.get(`/api/order/payment/${paymentId}/status`);
 };
 
-export const mockPaymentCallback = (paymentId) => {
-  return axios.post(`/api/order/payment/${paymentId}/mock`);
+export const mockPaymentCallback = (paymentId, status = 'SUCCESS') => {
+  return axios.post(`/api/order/payment/${paymentId}/mock?status=${status}`);
+};
+
+// 圖片上傳API
+export const uploadImage = (formData) => {
+  return axios.post("/api/images/upload", formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
 }; 

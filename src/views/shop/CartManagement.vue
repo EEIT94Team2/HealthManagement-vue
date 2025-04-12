@@ -223,28 +223,28 @@ const calculateTotal = () => {
     .reduce((total, item) => total + item.product.price * item.quantity, 0));
 };
 
-// 去结算
+// 结算
 const goToCheckout = async () => {
   if (cartItems.value.length === 0) {
-    ElMessage.warning('購物車是空的，無法結算');
+    ElMessage.info('購物車為空，無法結算');
     return;
   }
   
   try {
     loading.value = true;
     const userId = authStore.userInfo?.id;
-    
-    // 創建訂單
     const response = await createOrderFromCart(userId);
+    
     const orderId = response.data.id;
+    ElMessage.success('訂單創建成功');
     
-    ElMessage.success('訂單創建成功，正在跳轉至支付頁面');
-    
-    // 跳轉到訂單詳情頁面
-    router.push(`/shop/orders/${orderId}`);
+    // 前往支付頁面
+    setTimeout(() => {
+      router.push(`/shop/payment/${orderId}`);
+    }, 1000);
   } catch (error) {
     console.error('結算失敗:', error);
-    ElMessage.error('結算失敗，請稍後再試');
+    ElMessage.error('結算失敗: ' + (error.response?.data?.message || error.message || '未知錯誤'));
   } finally {
     loading.value = false;
   }

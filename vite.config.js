@@ -25,4 +25,6 @@ export default defineConfig({
         port: 5173,
         host: "localhost",
     },
+    publicDir: 'public',
+    assetsInclude: ['**/*.jpg', '**/*.png', '**/*.svg', '**/*.gif'],
 });

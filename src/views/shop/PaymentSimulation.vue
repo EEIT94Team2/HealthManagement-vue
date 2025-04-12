@@ -339,25 +339,15 @@ const createPaymentForOrder = async (paymentMethod = 'CREDIT_CARD') => {
 const simulatePaymentCallback = async (paymentId, status) => {
   loading.value = true;
   try {
-    await mockPaymentCallback(paymentId);
-    ElMessage.success(`模擬支付${status === 'SUCCESS' ? '成功' : '失敗'}`);
+    await mockPaymentCallback(paymentId, status);
+    ElMessage.success('模擬支付回調處理成功');
     
-    // 如果是當前查詢的支付，則更新其狀態
-    if (paymentInfo.value && paymentInfo.value.id === paymentId) {
-      const response = await getPaymentStatus(paymentId);
-      paymentInfo.value = response.data;
-    }
+    // 更新支付狀態
+    const response = await getPaymentStatus(paymentId);
+    paymentInfo.value = response.data;
     
-    // 刷新待處理支付列表
+    // 重新获取待处理支付列表
     fetchPendingPayments();
-    
-    // 如果是從訂單過來的，且支付成功，返回訂單頁面
-    if (currentOrder.value && status === 'SUCCESS') {
-      setTimeout(() => {
-        ElMessage.success('支付完成，正在返回訂單頁面');
-        router.push(`/shop/orders/${currentOrder.value.id}`);
-      }, 2000);
-    }
   } catch (error) {
     console.error('模擬支付回調失敗:', error);
     ElMessage.error('模擬支付回調失敗');

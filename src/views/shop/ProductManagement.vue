@@ -161,7 +161,7 @@
         </el-card>
 
         <!-- 新增/編輯商品對話框 -->
-        <el-dialog v-model="dialogVisible" :title="isEdit ? '編輯商品' : '新增商品'" width="500px">
+        <el-dialog v-model="dialogVisible" :title="isEdit ? '編輯商品' : '添加商品'" width="600px">
             <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
                 <el-form-item label="商品名稱" prop="name">
                     <el-input v-model="form.name" />
@@ -186,17 +186,17 @@
 
                 <el-form-item label="商品圖片" prop="imageUrl">
                     <el-upload
-                        class="image-upload"
-                        action="/api/upload"
+                        class="avatar-uploader"
+                        action="#"
+                        :http-request="uploadImage"
                         :show-file-list="false"
                         :on-success="handleUploadSuccess"
                         :before-upload="beforeUpload"
-                        :auto-upload="false"
                     >
                         <img v-if="form.imageUrl" :src="form.imageUrl" class="preview-image" />
-                        <div v-else>
+                        <div v-else class="image-upload">
                             <el-icon class="upload-icon"><Plus /></el-icon>
-                            <div class="el-upload__text">上傳圖片或輸入URL</div>
+                            <div>點擊上傳</div>
                         </div>
                     </el-upload>
                     <el-input
@@ -204,7 +204,7 @@
                         placeholder="或直接輸入圖片URL"
                         class="mt-10"
                     />
-                    <div class="el-upload__tip">注意：由於暫無圖片上傳API，請直接輸入圖片URL</div>
+                    <div class="el-upload__tip">支持點擊上傳圖片或直接輸入圖片URL</div>
                 </el-form-item>
             </el-form>
 
@@ -248,7 +248,8 @@ import {
     updateProduct, 
     deleteProduct, 
     searchProducts,
-    getProductsByPriceRange 
+    getProductsByPriceRange,
+    uploadImage as uploadImageApi
 } from "@/api/shop";
 
 const router = useRouter();
@@ -463,26 +464,59 @@ const handleDelete = async (row) => {
 
 // 處理表單提交
 const handleSubmit = async () => {
-    if (!isAdmin.value) return;
     if (!formRef.value) return;
-
+    
     await formRef.value.validate(async (valid) => {
         if (valid) {
             try {
                 loading.value = true;
-                let response;
-                if (isEdit.value) {
-                    response = await updateProduct(form.value.id, form.value);
-                    ElMessage.success("更新成功");
-                } else {
-                    response = await createProduct(form.value);
-                    ElMessage.success("新增成功");
+                
+                // 表單資料準備好後再提交
+                const submitForm = async () => {
+                    const productData = { ...form.value };
+                    
+                    if (isEdit.value) {
+                        await updateProduct(form.value.id, productData);
+                        ElMessage.success("商品更新成功");
+                    } else {
+                        await createProduct(productData);
+                        ElMessage.success("商品添加成功");
+                    }
+                    
+                    dialogVisible.value = false;
+                    resetForm();
+                    fetchProducts();
+                };
+                
+                // 如果圖片是 base64 格式且以 data:image 開頭，則先上傳圖片
+                if (form.value.imageUrl && form.value.imageUrl.startsWith('data:image')) {
+                    try {
+                        // 將 base64 轉換為文件對象
+                        const base64Data = form.value.imageUrl.split(',')[1];
+                        const blob = base64ToBlob(base64Data, 'image/jpeg');
+                        const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
+                        
+                        // 創建 FormData 對象
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        
+                        // 上傳圖片
+                        const response = await uploadImageApi(formData);
+                        
+                        // 更新表單中的圖片 URL
+                        form.value.imageUrl = response.data;
+                        ElMessage.success('圖片上傳成功');
+                    } catch (error) {
+                        console.error('圖片上傳失敗:', error);
+                        ElMessage.warning('圖片上傳失敗，將直接使用base64格式');
+                    }
                 }
-                dialogVisible.value = false;
-                fetchProducts();
+                
+                // 提交表單
+                await submitForm();
             } catch (error) {
-                console.error(isEdit.value ? "更新失敗" : "新增失敗", error);
-                ElMessage.error(isEdit.value ? "更新失敗" : "新增失敗");
+                console.error("提交失敗:", error);
+                ElMessage.error("提交失敗: " + (error.response?.data?.message || '未知錯誤'));
             } finally {
                 loading.value = false;
             }
@@ -490,15 +524,77 @@ const handleSubmit = async () => {
     });
 };
 
-// 上傳前驗證
-const beforeUpload = (file) => {
-    ElMessage.warning("當前系統暫不支持圖片上傳，請直接輸入圖片URL");
-    return false; // 阻止上傳
+// base64 轉 Blob 工具函數
+const base64ToBlob = (base64, mimeType) => {
+    const byteCharacters = atob(base64);
+    const byteArrays = [];
+    
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+        const slice = byteCharacters.slice(offset, offset + 512);
+        
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) {
+            byteNumbers[i] = slice.charCodeAt(i);
+        }
+        
+        const byteArray = new Uint8Array(byteNumbers);
+        byteArrays.push(byteArray);
+    }
+    
+    return new Blob(byteArrays, { type: mimeType });
 };
 
-// 上傳成功回調
+// 圖片上傳前的驗證
+const beforeUpload = (file) => {
+    const isImage = file.type.startsWith('image/');
+    const isSizeValid = file.size / 1024 / 1024 < 5;
+
+    if (!isImage) {
+        ElMessage.error('只能上傳圖片文件!');
+        return false;
+    }
+    if (!isSizeValid) {
+        ElMessage.error('圖片大小不能超過5MB!');
+        return false;
+    }
+    return true;
+};
+
+// 處理圖片上傳
+const uploadImage = async (options) => {
+    try {
+        const formData = new FormData();
+        formData.append('file', options.file);
+        
+        const response = await uploadImageApi(formData);
+        form.value.imageUrl = response.data;
+        
+        options.onSuccess(response.data);
+        ElMessage.success('圖片上傳成功');
+    } catch (error) {
+        options.onError(error);
+        ElMessage.error('圖片上傳失敗');
+    }
+};
+
+// 上傳成功處理
 const handleUploadSuccess = (response) => {
-    ElMessage.warning("當前系統暫不支持圖片上傳，請直接輸入圖片URL");
+    // 直接使用response作為URL
+    form.value.imageUrl = response;
+};
+
+// 重置表單
+const resetForm = () => {
+    form.value = {
+        name: "",
+        price: 0,
+        stockQuantity: 0,
+        description: "",
+        imageUrl: "",
+    };
+    if (formRef.value) {
+        formRef.value.resetFields();
+    }
 };
 
 onMounted(() => {
