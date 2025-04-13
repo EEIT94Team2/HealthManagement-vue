@@ -267,9 +267,14 @@ const searchPayment = async () => {
     return;
   }
   
+  if (!searchForm.value.paymentId) {
+    ElMessage.warning('支付編號不能為空');
+    return;
+  }
+  
   loading.value = true;
   try {
-    const response = await getPaymentStatus(searchForm.value.paymentId);
+    const response = await getPaymentStatus(searchForm.value.paymentId.trim());
     paymentInfo.value = response.data;
     
     if (!paymentInfo.value) {
@@ -337,13 +342,18 @@ const createPaymentForOrder = async (paymentMethod = 'CREDIT_CARD') => {
 
 // 模拟支付回调
 const simulatePaymentCallback = async (paymentId, status) => {
+  if (!paymentId) {
+    ElMessage.warning('支付編號不能為空');
+    return;
+  }
+  
   loading.value = true;
   try {
-    await mockPaymentCallback(paymentId, status);
+    await mockPaymentCallback(paymentId.trim(), status);
     ElMessage.success('模擬支付回調處理成功');
     
     // 更新支付狀態
-    const response = await getPaymentStatus(paymentId);
+    const response = await getPaymentStatus(paymentId.trim());
     paymentInfo.value = response.data;
     
     // 重新获取待处理支付列表
