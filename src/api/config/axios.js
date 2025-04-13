@@ -9,6 +9,7 @@ const instance = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // 允許跨域攜帶cookie
 });
 
 // 請求攔截器

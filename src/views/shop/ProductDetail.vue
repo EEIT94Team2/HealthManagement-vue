@@ -21,6 +21,10 @@
               :src="product.imageUrl || 'https://via.placeholder.com/400x400?text=No+Image'"
               fit="cover"
               class="product-image"
+              :preview-src-list="product.imageUrl ? [product.imageUrl] : []"
+              :initial-index="0"
+              :z-index="9999"
+              preview-teleported
             />
           </div>
         </el-col>

@@ -61,10 +61,10 @@
                                 :src="row.imageUrl || 'https://via.placeholder.com/100x100?text=No+Image'" 
                                 fit="cover" 
                                 class="product-image"
-                                :preview-src-list="[row.imageUrl]"
+                                :preview-src-list="row.imageUrl ? [row.imageUrl] : []"
                                 :initial-index="0"
-                                :append-to-body="true"
-                                :z-index="3000"
+                                :z-index="9999"
+                                preview-teleported
                             />
                         </template>
                     </el-table-column>
